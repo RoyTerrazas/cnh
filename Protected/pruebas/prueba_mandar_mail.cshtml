@@ -1,0 +1,17 @@
+﻿
+@using System.Configuration;
+
+@{
+
+    //variable global para saber si es localhost y evitar errores de mandado de emails
+    // se debe incluir la libreria System.Configuration
+    string EsLocalHost = ConfigurationManager.AppSettings["PlataformaLocal"];
+    //-------------------------------------------
+
+    string email = "roy.terrazas@gmail.com", folio = "01";
+    if (EsLocalHost != "1")
+    {
+        WebMail.Send(to: email, subject: "SOLICITUD DE REVISIÓN ANTE LA CNH - ", body: "SU SOLICITUD HA SIDO RECIBIDA CON EL NÚMERO DE FOLIO: " + folio + ", RECUERDE QUE ESTE FOLIO Y EL CUM REGISTRADO DEBEN SER UTILIZADOS EN EL SISTEMA DE SEGUIMIENTO, GRACIAS.");
+    }
+}
+

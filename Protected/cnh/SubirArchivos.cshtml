@@ -1,0 +1,308 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Repositorio de casos de la CNH";
+    // script de seguridad
+     string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+     if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+    string id_folio = "", ruta = "", Mensaje = "", carpeta_repositorio = "", f = "";
+    var fileName = "";
+    string contadorTot = "", rutaFolder="";
+    int contador = 0;
+
+
+    string stat = Request.Form["status"];
+
+    contadorTot = Request.Form["contadorTot"];
+
+
+    id_folio = Request.Form["id_folio"];
+
+
+    //OBTENER LOS DATOS DEL CASO
+    string provincia = "", estatus = "", Nombre = "", Cum = "", id_CtipoCaso = "", asignado = "", resumen = "";
+
+
+    var sqlText0 = "SELECT * from TSolicitudTramite where id=@0";
+    var C0 = Conn.QuerySingle(sqlText0, id_folio);
+    if (C0 != null)    {
+        provincia = Convert.ToString(C0.provincia);
+        estatus = Convert.ToString(C0.estatus);
+        Nombre = C0.nombre.ToUpper();
+        Cum = C0.cum.ToUpper();
+        id_CtipoCaso = Convert.ToString(C0.id_CtipoCaso);
+        asignado = Convert.ToString(C0.asignado);
+        resumen = C0.resumen.ToUpper();
+    }
+
+
+
+
+    //------------------------------ NO POSTEADO --------------------------------------------------------
+
+    //establecer la ruta para subir
+
+    ruta = Server.MapPath("/protected/repositorioarchivos/" + id_folio + "/");
+    rutaFolder = Server.MapPath("/protected/repositorioarchivos/" + id_folio + "/");
+
+
+
+
+
+
+
+
+
+
+    if (id_folio != "")    {
+        //---------------------------------------------------------------------------------------------------
+        //borrar todos los archivos de la carpeta
+        if (Request["Borrar"] == "1" && IsPost)        {
+
+
+            for (int i = 1; i <= Convert.ToInt32(contadorTot); i++)            {
+                if (Request["borrar_" + i] != null)                {
+                    f = ruta + Request["borrar_" + i];
+                    File.Delete(f);
+                }
+            }
+
+            //-----------------------------------------------------------------------------------
+            //checar si no hay archivos en la carpeta entonces borrarla
+
+            //checar si el folder existe
+            bool directoryExists = Directory.Exists(ruta);
+            if (directoryExists==true) {
+                //checar si el folder esta vacio y borrarlo
+                if (Directory.GetFileSystemEntries(rutaFolder).Length == 0) {
+                    Directory.Delete(rutaFolder);
+                }
+            }
+
+            //-----------------------------------------------------------------------------------
+
+        }
+
+        //---------------------------------------------------------------------------------------------------
+        //SUBIR ARCHIVOS
+        if (Request.Form["SubirArch"] == "1" && IsPost)        {
+
+
+
+
+            //crear carpeta o revisar que la carpeta este hecha
+            //crear carpeta
+            try            {
+                // Determine whether the directory exists.
+                if (Directory.Exists(ruta))                {
+                    Mensaje = "Directorio actual: " + id_folio;
+                    // return;
+                }
+                else                {
+                    // Try to create the directory.
+                    DirectoryInfo di = Directory.CreateDirectory(ruta);
+                    Mensaje = "Se creo el directorio: " + id_folio + " fecha:" + Directory.GetCreationTime(ruta);
+                }
+
+                // Delete the directory.
+                //  di.Delete();
+                //  @Html.Raw("The directory was deleted successfully.");
+            }
+            catch (Exception e)            {
+                Mensaje = "Falla en el proceso:" + e.ToString();
+            }
+
+
+            string rutasubir = "/protected/repositorioarchivos/" + id_folio + "/";
+            var fileSavePath = "";
+            var uploadedFile = Request.Files[0];
+            fileName = Path.GetFileName(uploadedFile.FileName);
+            if (fileName == "") { }
+            else            {
+                fileSavePath = Server.MapPath(rutasubir + fileName);
+                uploadedFile.SaveAs(fileSavePath);
+            }
+        }
+
+        //---------------------------------------------------------------------------------------------------
+    }
+
+
+
+
+
+}
+
+
+
+
+
+    <div class="content-wrapper">
+        <section class="content-header">
+            <h1>Repositorio <small>Repositorio de archivos de Casos de la CNH.</small> </h1>
+            <ol class="breadcrumb">
+                <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="~/Protected/cnh/AdminSolicitudes?status=@stat" title="Administración de solicitudes">Adm Solicitudes</a></li>
+                <li><a href="#" class="active" title="Subir archivos">Subir archivos</a></li>
+            </ol>
+        </section>
+
+        <section class="content">
+            <div class="row">
+                <div class="col-md-12">
+
+
+
+
+
+                    <div class="box box-default color-palette-box">
+                        <div class="box-header with-border">
+                            <h3 class="box-title"><i class="fa fa-tag"></i> Datos del repositorio @Mensaje</h3>
+                        </div>
+                        <div class="box-body">
+
+                            <div class="row">
+                                <div class="col-sm-1 col-md-1"> <strong>Folio: </strong>@id_folio       </div>
+                                <div class="col-sm-4 col-md-4"> <strong>Interpone: </strong>@Nombre (@Cum)     </div>
+                                <div class="col-sm-2 col-md-2">
+                                    @{  var sqlText1 = "SELECT * from CEstatusTramite where id=@0";
+                                        var C1 = Conn.QuerySingle(sqlText1, estatus);
+                                        if (C1 != null)  {@Html.Raw("<strong>Estatus: " + C1.Descrip.ToUpper() + " </strong> ");   } 
+                                        }
+                                </div>
+                                <div class="col-sm-2 col-md-2">
+                                    @{  var sqlText2 = "SELECT * from CTipoCaso where Id_TipoCaso=@0";
+                                        var C2 = Conn.QuerySingle(sqlText2, id_CtipoCaso);
+                                        if (C2 != null) {@Html.Raw("<strong>Tipo caso: " + C2.descrip_tipo_caso.ToUpper() + " </strong> "); }
+                                         }
+                                </div>
+                                <div class="col-sm-3 col-md-3">
+                                    @{  var sqlText3 = "SELECT * from TConsejeros where Id=@0";
+                                        var C3 = Conn.QuerySingle(sqlText3, asignado);
+                                        if (C3 != null)  {@Html.Raw("<strong>Asignado: " + C3.nombre_Consejero.ToUpper() + " </strong> "); }
+                                        else  { @Html.Raw("<strong>Asignado: NO</strong> ");  }
+                                    }
+
+
+
+                                </div>
+                            </div>
+
+                            <div class="row">  <div class="col-sm-12 col-md-12"> <strong>Resumen: </strong>@resumen  </div>  </div>
+
+
+                            <hr />
+
+
+
+
+                            <div class="row">
+                                <div class="col-sm-12 col-md-12">
+
+                                    <form name="formaBorrar" id="formaBorrar" method="post">
+                                   
+
+                                        <CENTER><H5><strong> ARCHIVOS EN LA CARPETA DEL EQUIPO: </strong></H5></CENTER>
+                                        <div class="well">
+                                            @{
+                                                //@Html.Raw(ruta);// remove this after servermathpath works
+                                                // return;// remove this after servermathpath works
+
+                                                if (Directory.Exists(ruta))       {
+                                                    string[] filePaths = Directory.GetFiles(ruta);
+                                                    for (int i = 0; i < filePaths.Length; ++i)     {
+                                                        contador = contador + 1;
+                                                        string path = filePaths[i];
+                                                        @Html.Raw("<small> " + (i + 1) + ".-</small> <input type='checkbox' name='borrar_" + contador + "' value='" + System.IO.Path.GetFileName(path) + "'> ");
+                                                        @Html.Raw("<small><a href='/protected/repositorioarchivos/" + id_folio + "/" + System.IO.Path.GetFileName(path) + "' target='_blank'>" + System.IO.Path.GetFileName(path) + "</a></small>");
+                                                        @Html.Raw("</BR>");
+                                                    }
+
+                                                }
+
+                                            }
+                                        </div>
+
+                                        <CENTER><H5><strong> BORRAR ARCHIVOS DE LA CARPETA: </strong></H5></CENTER>
+                                        <div class="form-actions">
+                                            <div class="pull-left">Seleccione un archivo con el checkbox y presione el boton borrar para eliminarlo permanentemente del repositorio.</div>
+
+
+
+                                            <button type="submit" onclick="Borrar();" class="btn pull-right"  data-confirm="¿Desea permanentemente los archivos seleccionados?">Borrar</button>
+
+                                      
+                                        </div>
+                                    
+                                        <input type="hidden" value="1" name="Borrar" />
+                                        <input type="hidden" name="id_folio" value="@Request["id_folio"]" />
+                                        <input type="hidden" value="@contador" name="contadorTot" />
+                                        <input type="hidden" value="@stat" name="stat" /> 
+                            
+                                    </form>
+
+                                </div>
+                            </div>
+                            <!------------------------------------------------------------------------------------------------------------------------------------->
+                            <div class="row">
+                                <div class="col-sm-12 col-md-12">
+                                    <form id="formaSubir" name="formaSubir" method="post" class="form-horizontal" enctype="multipart/form-data">
+                                       <CENTER><H5><strong> SUBIR ARCHIVOS EN ESTA CARPETA</strong></H5></CENTER>
+                                        <fieldset>
+                                            <div class="control-group">
+                                                <label class="control-label">Subir Archivos: </label>
+                                                <div class="controls">
+                                                    <input class="input-file uniform_on" id="uploadedFile" required name="uploadedFile" accept="application/pdf" type="file">
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <div class="form-actions">
+                                            <button type="button" onclick="Subir();" class="btn pull-right">Subir</button>
+                                        </div>
+                                        <input type="hidden" value="1" name="SubirArch" />
+                                        <input type="hidden" name="id_folio" value="@Request["id_folio"]" />
+                                    </form>
+                                </div>
+                            </div>
+                            <!------------------------------------------------------------------------------------------------------------------------------------->
+
+                        </div>
+
+                            </div>
+
+
+
+
+
+
+
+
+                        </div>
+            </div>
+        </section>
+
+    </div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+function Borrar(){
+    //   document.formaBorrar.submit();
+    alert("entre");
+    document.getElementById("formaBorrar").submit();
+}
+
+function Subir() {
+   // document.formaSubir.submit();
+    document.getElementById("formaSubir").submit();
+}
+</script>

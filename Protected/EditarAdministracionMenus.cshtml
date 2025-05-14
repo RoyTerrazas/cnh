@@ -1,0 +1,132 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Nuevo / Edición";
+
+    DateTime fecha_inicioo = DateTime.Now;
+    string Id = "", Nuevo = "", NombreMenu="", enviado="", IconoMenu="";
+    string NombreCarg = "", IconoCarg = "";
+
+    string aceptar = Request.Form["aceptar"];
+    string resu = "";
+    bool Ver = false;
+
+    if (Convert.ToString(aceptar) == "on") { resu = "1"; } else { resu = "0"; }
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("SinPermiso"); }
+
+    Id = Request.Form["Id"]; //edicion
+    Nuevo = Request.Form["Nuevo"]; // si es 1
+    NombreMenu = Request.Form["NombreMenu"];
+    enviado = Request.Form["enviado"];
+    IconoMenu = Request.Form["IconoMenu"];
+
+
+    if (IsPost) {
+        //precargado de edicion
+
+        var sqlText = "SELECT NombreMenu,IconoMenu,visible FROM webpages_NombreMenu WHERE id=@0";
+        var Cn = Conn.QuerySingle(sqlText, Id);
+        if (Cn != null)  {
+            NombreCarg = Cn.NombreMenu;
+            IconoCarg = Cn.IconoMenu;
+            Ver=Cn.visible;
+        }
+
+
+    }
+
+
+    if (IsPost && enviado == "1") {
+
+        if (Id == "") {//nuevo
+            var insertCommand = "INSERT INTO webpages_NombreMenu(NombreMenu,IconoMenu,visible) Values(@0,@1,@2)";
+            Conn.Execute(insertCommand, NombreMenu, IconoMenu, resu);
+            Response.Redirect("AdministracionMenus?exito=1");
+        }
+
+        if (Id != "") {//edicion
+            var updateCommand2 = "UPDATE webpages_NombreMenu SET NombreMenu=@0,IconoMenu=@1,visible=@2 WHERE Id=@3";
+            Conn.Execute(updateCommand2, NombreMenu, IconoMenu, resu, Id);
+            Response.Redirect("AdministracionMenus?exito=1");
+        }
+
+
+    }//post
+}
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Edición de Menú <small>Administración de menus del sistema</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/protected/Default"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="AdministracionMenus"><i class="fa fa-area-chart"></i> Administración de Menus</a></li>
+            <li class="active">Nuevo / Edición de menus</li>
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Menú de altas y modificaciones de compras directas</h3>
+                    </div>
+                    <form role="form" method="post">
+                        <div class="box-body">
+
+                            
+
+
+                            <div class="form-group">
+                                <label>*Nombre del menú:</label>
+                                <div class="input-group date">
+                                    <div class="input-group-addon">
+                                        <i class="fa fa-clone"></i>
+                                    </div>
+                                    <input type="text" class="form-control pull-right" id="NombreMenu" required maxlength="30" name="NombreMenu" value="@NombreCarg ">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>*Icono del menú:</label>
+                                <div class="input-group date">
+                                    <div class="input-group-addon">
+                                        <i class="fa fa-book"></i>
+                                    </div>
+                                    <input type="text" class="form-control pull-right" id="IconoMenu" required maxlength="30" name="IconoMenu"  value="@IconoCarg">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-sm-offset-2 col-sm-10">
+                                    <div class="checkbox">
+                                        <label>  <input type="checkbox" name="aceptar" @if (Ver == true) { @Html.Raw("checked") ; }> Mostrar menú  </label>
+                                    </div>
+                                </div>
+                            </div>
+    
+                      
+                        </div>
+                        <div class="box-footer ">
+                            Los iconos se sacan de font awsome: <a href="https://fontawesome.com/" target="_blank">https://fontawesome.com/</a>
+                            <button type="submit" class="btn btn-primary pull-right">Enviar</button>
+                            <input type="hidden" name="enviado" value="1" />
+                            <input type="hidden" name="Id" value="@Id" />
+                       </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

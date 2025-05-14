@@ -1,0 +1,830 @@
+﻿@using System.Configuration;
+
+@{
+
+
+
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Inicio";
+    bool DeshabilitarBoton = false, DeshabilitarBoton1 = false, DeshabilitarBoton2 = false, DeshabilitarBoton3 = false, DeshabilitarBoton4 = false, DeshabilitarBoton5 = false;
+    bool eleccionHabilitada = false, eleccionHabilitada1 = false, eleccionHabilitada2 = false, eleccionHabilitada3 = false, eleccionHabilitada4 = false, eleccionHabilitada5 = false;
+    bool PuedeverEleccion = false, PuedeverEleccion1 = false, PuedeverEleccion2 = false, PuedeverEleccion3 = false, PuedeverEleccion4 = false, PuedeverEleccion5 = false, PuedeverEleccionx = false;
+    int idEleccionPN = 1;
+    int idEleccionConsejeros = 2;
+    int idEleccionCNH = 3;
+    int idEleccionCNV = 4;
+    int idEleccionPP = 5;
+
+    //variable global para saber si es localhost y evitar errores de mandado de emails
+    // se debe incluir la libreria System.Configuration
+    string EsLocalHost = ConfigurationManager.AppSettings["PlataformaLocal"];
+    //-------------------------------------------
+
+
+    int idEleccionPruebas = 9;
+
+
+    string NombreProv = "", NombreProv1 = "", NombreProv2 = "", NombreProv3 = "", NombreProv4 = "";
+    bool EleccionCerrada0 = true, EleccionCerrada1 = true, EleccionCerrada2 = true, EleccionCerrada3 = true, EleccionCerrada4 = true, EleccionCerrada5 = true;
+
+    int Ideleccion1 = 0;
+
+
+    string nombre1 = "", nombre2 = "", nombre3 = "", nombre4 = "", nombre5 = "";
+    string foto1 = "", foto2 = "", foto3 = "", foto4 = "", foto5 = "";
+
+    DateTime FechaActual = DateTime.Today;
+    int year = FechaActual.Year;
+
+
+    //checar si ya se le tomo lista al que entra -----------------------------------------------------
+    bool TomoLista = false;
+    var sqlListau = "select email,asociado from VUsuarioDatosRoles where userid=@0 ";
+    var CListau = Conn.QuerySingle(sqlListau, WebSecurity.CurrentUserId);
+    if (CListau != null)
+    {
+        if (CListau.asociado == true)
+        {
+            //solo para las cuentas de asociados numericas
+            var sqlLista = "select IdUserProfile from TPaseDeLista_Elecc where IdUserProfile=@0 ";
+            var CLista = Conn.QuerySingle(sqlLista, CListau.email);
+            if (CLista != null) { TomoLista = true; } else { TomoLista = false; }
+        }
+    }
+    //-----------------------------------------------------------------------------------------------------------
+
+
+    //obtener la provincia de la persona que entra para lo de pp
+    int ProvinciaActual = 0;
+    int RoleUsuarioActual = 0;
+    var sqlText00 = "select id_Provincias,Roleid from VUsuarioDatosRoles where userid=@0";
+    var C00 = Conn.QuerySingle(sqlText00, WebSecurity.CurrentUserId);
+    if (C00 != null)
+    {
+        ProvinciaActual = C00.id_Provincias;
+        if (Convert.ToString(ProvinciaActual) == "") { ProvinciaActual = 61; }
+        RoleUsuarioActual = C00.Roleid;
+        if (Convert.ToString(RoleUsuarioActual) == "") { RoleUsuarioActual = 6; }
+    }
+    //--------------------------------------------------------------------------
+
+    string Contador = "";
+    //contador de solicitudes pendientes
+    var sqlText = "select count(id) as Contador from TSolicitudTramite where estatus=6";
+    var C0 = Conn.QuerySingle(sqlText);
+    if (C0 != null)
+    {
+        Contador = Convert.ToString(C0.Contador);
+    }
+
+    //--------------------------------------------------------------------------
+
+    //solicitudes en revision
+    string SolicitudesARevisar = "";
+    var sqlText1 = "select count(id) as Contador from TSolicitudTramite where estatus = 1 and year(fecha)=" + year;
+    var C1 = Conn.QuerySingle(sqlText1);
+    if (C1 != null)
+    {
+        SolicitudesARevisar = Convert.ToString(C1.Contador);
+    }
+
+    //solicitudes resueltas
+    string SolicitudesResueltas = "";
+    var sqlText2 = "select count(id) as Contador from TSolicitudTramite where estatus = 3 and year(fecha)=" + year;
+    var C2 = Conn.QuerySingle(sqlText2);
+    if (C2 != null)
+    {
+        SolicitudesResueltas = Convert.ToString(C2.Contador);
+    }
+
+    //solicitudes faltan datos
+    string SolicitudesFaltan = "";
+    var sqlText3 = "select count(id) as Contador from TSolicitudTramite where estatus = 5 and year(fecha)=" + year;
+    var C3 = Conn.QuerySingle(sqlText3);
+    if (C3 != null)
+    {
+        SolicitudesFaltan = Convert.ToString(C3.Contador);
+    }
+
+
+    //solicitudes recibido
+    string SolicitudesRecibido = "";
+    var sqlText4 = "select count(id) as Contador from TSolicitudTramite where estatus = 6 and year(fecha)=" + year;
+    var C4 = Conn.QuerySingle(sqlText4);
+    if (C4 != null)
+    {
+        SolicitudesRecibido = Convert.ToString(C4.Contador);
+    }
+
+
+    //total de solicitudes
+    string TotalSolicitudes = "";
+    var sqlText5 = "select count(id) as Contador from TSolicitudTramite where year(fecha)=" + year;
+    var C5 = Conn.QuerySingle(sqlText5);
+    if (C5 != null)
+    {
+        TotalSolicitudes = Convert.ToString(C5.Contador);
+    }
+
+
+    //Contador de actas
+    string ContadorActas = "";
+    var sqlText1n = "select count(id_Acuerdo) as Contador from TAcuerdosCNH";
+    var C1n = Conn.QuerySingle(sqlText1n);
+    if (C1n != null)
+    {
+        ContadorActas = Convert.ToString(C1n.Contador);
+    }
+
+
+    // ubicar que rol tiene la persona que se conecta-----------------------------------------
+    string rol = "";
+    var sqlRol = "SELECT RoleId FROM webpages_UsersInRoles WHERE UserId=@0";
+    var CRol = Conn.QuerySingle(sqlRol, WebSecurity.CurrentUserId);
+    if (CRol != null) { rol = Convert.ToString(CRol.RoleId); }
+
+    //----------------------------------------------------------------------------------------------
+    //------------------NOTIFICACIONES------------------------------------------------------------------
+    var Contador_notificacioness = 0;
+    // deslegar las primeras 5 notificaciones
+    var selectQueryString1s = "SELECT * FROM TNotificaciones where publicado=1";
+    foreach (var row1 in Conn.Query(selectQueryString1s))
+    {
+        var id_notificaciones = row1.id_notificaciones;
+        var userprof4 = "SELECT * FROM TNotificaciones_leidas  WHERE id_UserProfile=@0 and id_TNotificaciones=@1";
+        var Cprof4 = Conn.QuerySingle(userprof4, WebSecurity.CurrentUserId, id_notificaciones);
+        if (Cprof4 != null) { }
+        else { Contador_notificacioness = Contador_notificacioness + 1; }
+    }
+    //-------------------DIFERENCIA DE FECHAS-----------------------------------------------------------------------------
+    var color_notific = "";
+    if (Contador_notificacioness == 0) { color_notific = "bg-green"; }
+    else { color_notific = "bg-aqua"; }
+    // dias para el jamboree
+    DateTime oldDate = new DateTime(2019, 07, 22);
+    DateTime newDate = DateTime.Now;
+    // Difference in days, hours, and minutes.
+    TimeSpan ts = oldDate - newDate;
+    // Difference in days.
+    //   int differenceInDays = ts.Days;
+
+
+
+
+
+}
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Inicio<small> Corte Nacional de Honor  </small> </h1>
+        <ol class="breadcrumb">  <li><a href="default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li> </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box ">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Seleccione el el servicio que desea consultar:</h3>
+                        <div class="box-tools pull-right"> <button type="button" class="btn btn-box-tool" data-widget="collapse">  <i class="fa fa-minus"></i></button> </div>
+                    </div>
+                    <div class="box-body">
+
+                        <div class="row">
+                            <div class="col-lg-3 col-xs-6">
+                                <!-- small box -->
+
+
+                                <div class="small-box bg-purple-gradient">
+
+
+                                    <div class="inner">
+
+                                        <h3>@Contador</h3>
+                                        <p>Solicitudes pedientes</p>
+
+
+                                    </div>
+
+                                    @{
+                                        if (rol == "1" || rol == "2")
+                                        {
+                                            <a href="cnh/AdminSolicitudes" title="Administrar Solicitudes">
+                                                <div class="icon">
+                                                    <i class="fa fa-hourglass-half"></i>
+                                                </div>
+                                            </a>
+                                            <a href="cnh/AdminSolicitudes" class="small-box-footer">Administrar Solicitudes &nbsp; <i class="fa fa-arrow-circle-right"></i></a>
+                                        }
+                                        else
+                                        {
+                                            <div class="icon">
+                                                <i class="fa fa-hourglass-half"></i>
+                                            </div>
+
+                                        }
+
+                                    }
+
+                                </div>
+
+                            </div>
+                            <!-- ./col -->
+                            <div class="col-lg-3 col-xs-6">
+                                <!-- small box -->
+                                <div class="small-box bg-purple-gradient">
+                                    <div class="inner">
+                                        <h3>@ContadorActas</h3>
+                                        <p>Historial de acuerdos</p>
+                                    </div>
+                                    <a href="~/Protected/cnh/MenuActas" title="Historial de acuerdos">
+                                        <div class="icon">
+                                            <i class="fa fa-folder-open"></i>
+                                        </div>
+                                    </a>
+                                    <a href="~/Protected/cnh/MenuActas" class="small-box-footer">Visualizar &nbsp;  <i class="fa fa-arrow-circle-right"></i></a>
+                                </div>
+                            </div>
+                            <!-- ./col -->
+                            <div class="col-lg-3 col-xs-6">
+                                <!-- small box -->
+
+
+                                <div class="small-box bg-purple-gradient">
+
+                                    <div class="inner">
+                                        <h3>@SolicitudesARevisar</h3>
+                                        <p>Solicitudes en revisión </p>
+                                    </div>
+                                    <a href="cnh/MenuSolicitudes" title="Revisar solicitudes">
+                                        <div class="icon">
+                                            <i class="fa fa-info-circle "></i>
+                                        </div>
+                                    </a>
+
+                                    <a href="cnh/MenuSolicitudes" class="small-box-footer">Revisar solcitudes  &nbsp; <i class="fa fa-arrow-circle-right"></i></a>
+                                </div>
+
+
+                            </div>
+                            <!-- ./col -->
+
+
+
+                            <div class="col-lg-3 col-xs-6 ">
+                                <div class="small-box @color_notific">
+                                    <div class="inner">
+                                        <h3><small><font color=white>Notificaciones</font></small></h3>
+                                        <p>@Contador_notificacioness</p>
+                                    </div>
+                                    <div class="icon"><i class="ion ion-email-unread"></i></div>
+                                    <a href="notificaciones_menu?resource=@Request.QueryString["resource"];" class="small-box-footer">Mas información <i class="fa fa-arrow-circle-right"></i></a>
+                                </div>
+                            </div>
+
+
+
+                            <!-- ./col -->
+                        </div>
+
+
+                        @{
+                            //contadores
+                            double por1 = 0, por2 = 0, por3 = 0, por4 = 0;
+
+                            if (TotalSolicitudes != "0")
+                            {
+                                por1 = (Convert.ToInt32(SolicitudesRecibido) * 100) / Convert.ToInt32(TotalSolicitudes);
+                                por2 = (Convert.ToInt32(SolicitudesARevisar) * 100) / Convert.ToInt32(TotalSolicitudes);
+                                por3 = (Convert.ToInt32(SolicitudesFaltan) * 100) / Convert.ToInt32(TotalSolicitudes);
+                                por4 = (Convert.ToInt32(SolicitudesResueltas) * 100) / Convert.ToInt32(TotalSolicitudes);
+                            }
+                            else
+                            {
+                                por1 = 0;
+                                por2 = 0;
+                                por3 = 0;
+                                por4 = 0;
+                            }
+
+
+
+                        }
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="box">
+                                    <div class="box-header">
+                                        <h3 class="box-title">Solicitudes de trámites en el año @year</h3>
+                                    </div>
+
+                                    <div class="box-body no-padding">
+
+                                        <div class="table-responsive">
+                                            <table class="table table-condensed table-hover">
+                                                <tr>
+                                                    <th style="width: 10px">#</th>
+                                                    <th>Tipo</th>
+                                                    <th>Porcentaje</th>
+                                                    <th style="width: 40px">Num</th>
+                                                </tr>
+                                                <tr>
+                                                    <td>1.</td>
+                                                    <td>Recibidos (Pendientes de asignar) </td>
+                                                    <td>
+                                                        <div class="progress progress-xs">
+                                                            <div class="progress-bar progress-bar-danger" style="width: @por1%"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-red">@SolicitudesRecibido</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>2.</td>
+                                                    <td>En revisión</td>
+                                                    <td>
+                                                        <div class="progress progress-xs">
+                                                            <div class="progress-bar progress-bar-yellow" style="width: @por2%"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-yellow">@SolicitudesARevisar</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>3.</td>
+                                                    <td>Faltan datos</td>
+                                                    <td>
+                                                        <div class="progress progress-xs progress-striped active">
+                                                            <div class="progress-bar progress-bar-primary" style="width: @por3%"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-light-blue">@SolicitudesFaltan</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>4.</td>
+                                                    <td>Resueltos</td>
+                                                    <td>
+                                                        <div class="progress progress-xs progress-striped active">
+                                                            <div class="progress-bar progress-bar-success" style="width: @por4%"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-green">@SolicitudesResueltas </span></td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td></td>
+                                                    <td>Total</td>
+                                                    <td> &nbsp; </td>
+                                                    <td><span class="badge bg-black">@TotalSolicitudes</span> </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="box">
+                                    <div class="box-header">
+                                        <h3 class="box-title">Miembros de la Corte y solicitudes asignadas</h3>
+                                        <div class="box-tools">
+                                        </div>
+                                    </div>
+                                    <!-- /.box-header -->
+                                    <div class="box-body table-responsive no-padding">
+                                        <table class="table table-hover">
+                                            <tr>
+                                                <th width="300">Nombre</th>
+                                                <th>Num. casos</th>
+                                                <th>Estatus</th>
+                                            </tr>
+
+                                            @{ string SQL = "select * from TConsejeros where ver = 1"; }
+                                            @foreach (var row in Conn.Query(SQL))
+                                            {
+
+                                                <tr>
+                                                    <td>@row.nombre_consejero.ToUpper()</td>
+                                                    <td>
+                                                        <center>
+                                                            @{
+                                                                string sqlText01en = "select count(id) as contador from [dbo].[TSolicitudTramite] where Asignado=@0 and estatus=1";
+                                                                var C0En = Conn.QuerySingle(sqlText01en, row.id);
+                                                                if (C0En != null)
+                                                                { @C0En.contador}
+                                                            }
+                                                        </center>
+                                                    </td>
+
+                                                    <td>
+                                                        @if (C0En.contador == 0)
+                                                        {<span class="label label-primary">Sin casos</span> }
+                                                        else
+                                                        { <span class="label label-success">Con casos</span>}
+                                                    </td>
+                                                </tr>
+                                            }
+
+
+
+
+
+                                        </table>
+                                    </div>
+                                    <!-- /.box-body -->
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+
+                            <div class="col-md-6">
+                                <div class="box">
+                                    <div class="box-header">
+                                        <h3 class="box-title">Casos en revisión</h3>
+                                        <div class="box-tools">
+                                        </div>
+                                    </div>
+                                    <!-- /.box-header -->
+                                    <div class="box-body table-responsive no-padding">
+                                        <table class="table table-hover">
+                                            <tr>
+                                                <th>Folio</th>
+                                                <th>Asignado a</th>
+                                                <th>Tiempo (en dias) </th>
+                                            </tr>
+
+                                            @{ string SQL2 = "select * from [dbo].[TSolicitudTramite] where estatus=1 and YEAR(fecha)= YEAR(CURRENT_TIMESTAMP)"; }
+                                            @foreach (var row in Conn.Query(SQL2))
+                                            {
+
+                                                <tr>
+                                                    <td>@row.id</td>
+                                                    <td>
+                                                        @{
+                                                            string sqlText01ena = "select * from [dbo].[TConsejeros] where id=@0";
+                                                            var C0Ena = Conn.QuerySingle(sqlText01ena, row.asignado);
+                                                            if (C0Ena != null)
+                                                            { @C0Ena.nombre_consejero.ToUpper()}
+                                                        }
+                                                    </td>
+
+                                                    <td>
+                                                        @{
+
+
+                                                            string emailPresidente = "";
+                                                            string emailSecretario = "";
+                                                            string emailEncargadoCaso = "";
+                                                            string nombreEncargado = "";
+
+
+
+                                                            //se cargan los datos para ver si ya se mandaron los email a los 15, 30, 45 y 60 dias
+
+
+
+                                                            var sqlTextnx = "SELECT DateDiff(\"d\",@0,CURRENT_TIMESTAMP) AS DiasDiferencia FROM TSolicitudTramite where id=@1";
+                                                            var C0nx = Conn.QuerySingle(sqlTextnx, row.fecha, row.id);
+                                                            if (C0nx != null)
+                                                            {
+
+                                                               // @Html.Raw(row.fecha);
+                                                               // @Html.Raw(row.id);
+                                                              
+
+                                                                int dias = Convert.ToInt32(C0nx.DiasDiferencia);
+
+                                                                if (dias <= 15)
+                                                                {
+                                                                    @Html.Raw("<font color=green><strong>" + dias + "</strong></font>");
+                                                                }
+                                                                else if (dias >= 16 && dias <= 30)
+                                                                {
+
+                                                                    //obtener email del presidente
+                                                                    var sqlPres = "select * from [dbo].[TConsejeros] where presidente=1";
+                                                                    var C0Pres = Conn.QuerySingle(sqlPres);
+                                                                    if (C0Pres != null) { emailPresidente = C0Pres.email; }
+
+                                                                    //obtener email del secretario
+                                                                    var sqlsec = "select * from [dbo].[TConsejeros] where secretario=1";
+                                                                    var C0sec = Conn.QuerySingle(sqlsec);
+                                                                    if (C0sec != null) { emailSecretario = C0sec.email; }
+
+                                                                    //obtener email de la persona asignada al caso
+                                                                    var sqlenc = "select * from [dbo].[TSolicitudTramite] where id=@0";
+                                                                    var C0enc = Conn.QuerySingle(sqlenc, row.id);
+                                                                    if (C0enc != null)
+                                                                    {
+                                                                        var sqlsec2 = "select * from [dbo].[TConsejeros] where id=@0";
+                                                                        var C0sec2 = Conn.QuerySingle(sqlsec2, C0enc.asignado);
+                                                                        if (C0sec2 != null) { emailEncargadoCaso = C0sec2.email; nombreEncargado = C0sec2.nombre_consejero; }
+                                                                    }
+
+
+                                                                    @Html.Raw("<font color=yellow><strong><h3>" + dias + "</h3></strong></font>");
+
+                                                                    if (EsLocalHost != "1")
+                                                                    {
+
+                                                                        //revisar si el mail ya se mando a los 15 dias si no no mandarlo
+                                                                        var sqldias = "select QuinceDias from [dbo].[TEmailsMandados] where idTSolicitudTramite =@0";
+                                                                        var Cdias = Conn.QuerySingle(sqldias, row.id);
+                                                                        if (Cdias == null)
+                                                                        {
+
+
+                                                                            WebMail.Send(to: emailPresidente, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 15 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 15 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                            WebMail.Send(to: emailSecretario, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 15 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 15 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                            if (emailPresidente != emailEncargadoCaso && emailSecretario != emailEncargadoCaso)
+                                                                            {
+                                                                                WebMail.Send(to: emailEncargadoCaso, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 15 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 15 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                            }
+
+                                                                        }
+
+
+
+
+
+
+
+                                                                    }
+
+                                                                    //mandar correo de mas de 15 dias
+                                                                    var sqlT2q = "select QuinceDias from [dbo].[TEmailsMandados] where idTsolicitudTramite=@0";
+                                                                    var C0nxt2q = Conn.QuerySingle(sqlT2q, row.id);
+                                                                    if (C0nxt2q != null)
+                                                                    {
+                                                                        var sqlInsertw = "UPDATE [dbo].[TEmailsMandados] SET QuinceDias = '1' WHERE idTSolicitudTramite= @0";
+                                                                        var CINw = Conn.QuerySingle(sqlInsertw, row.id);
+                                                                        if (CINw != null)
+                                                                        { @Html.Raw("Email 15 dias Mandado update");
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    var sqlInsert = "INSERT INTO [dbo].[TEmailsMandados] (idTSolicitudTramite, QuinceDias) VALUES (@0,@1);";
+                                                                    var CIN = Conn.QuerySingle(sqlInsert, row.id, 1);
+                                                                    if (CIN != null)
+                                                                    { @Html.Raw("Email 15 dias Mandado insert");
+                                                                }
+                                                            }
+
+
+                                                        }
+
+                                                        else if (dias >= 31 && dias <= 45)
+                                                        {
+
+                                                            //obtener email del presidente
+                                                            var sqlPres = "select * from [dbo].[TConsejeros] where presidente=1";
+                                                            var C0Pres = Conn.QuerySingle(sqlPres);
+                                                            if (C0Pres != null) { emailPresidente = C0Pres.email; }
+
+                                                            //obtener email del secretario
+                                                            var sqlsec = "select * from [dbo].[TConsejeros] where secretario=1";
+                                                            var C0sec = Conn.QuerySingle(sqlsec);
+                                                            if (C0sec != null) { emailSecretario = C0sec.email; }
+
+                                                            //obtener email de la persona asignada al caso
+                                                            var sqlenc = "select * from [dbo].[TSolicitudTramite] where id=@0";
+                                                            var C0enc = Conn.QuerySingle(sqlenc, row.id);
+                                                            if (C0enc != null)
+                                                            {
+                                                                var sqlsec2 = "select * from [dbo].[TConsejeros] where id=@0";
+                                                                var C0sec2 = Conn.QuerySingle(sqlsec2, C0enc.asignado);
+                                                                if (C0sec2 != null) { emailEncargadoCaso = C0sec2.email; nombreEncargado = C0sec2.nombre_consejero; }
+                                                            }
+
+
+                                                            @Html.Raw("<font color=orange><strong><h2>" + dias + "</h2></strong></font>");
+
+                                                            if (EsLocalHost != "1")
+                                                            {
+
+                                                                //revisar si el mail ya se mando a los 30 dias si no no mandarlo
+                                                                var sqldias = "select TreintaDias from [dbo].[TEmailsMandados] where idTSolicitudTramite =@0";
+                                                                var Cdias = Conn.QuerySingle(sqldias, row.id);
+                                                                if (Cdias == null)
+                                                                {
+                                                                    WebMail.Send(to: emailPresidente, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 30 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 30 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                    WebMail.Send(to: emailSecretario, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 30 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 30 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                    if (emailPresidente != emailEncargadoCaso && emailSecretario != emailEncargadoCaso)
+                                                                    {
+                                                                        WebMail.Send(to: emailEncargadoCaso, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 30 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 30 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                                    }
+                                                                }
+
+
+
+
+                                                            }
+
+                                                            //mandar correo de mas de 30 dias
+                                                            var sqlT2q = "select * from [dbo].[TEmailsMandados] where idTsolicitudTramite=@0";
+                                                            var C0nxt2q = Conn.QuerySingle(sqlT2q, row.id);
+                                                            if (C0nxt2q != null)
+                                                            {
+                                                                var sqlInsertw = "UPDATE [dbo].[TEmailsMandados] SET TreintaDias = '1' WHERE idTSolicitudTramite= @0";
+                                                                var CINw = Conn.QuerySingle(sqlInsertw, row.id);
+                                                                if (CINw != null)
+                                                                { @Html.Raw("Email 30 dias Mandado update");
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            var sqlInsert = "INSERT INTO [dbo].[TEmailsMandados] (idTSolicitudTramite, TreintaDias) VALUES (@0,@1);";
+                                                            var CIN = Conn.QuerySingle(sqlInsert, row.id, 1);
+                                                            if (CIN != null)
+                                                            { @Html.Raw("Email 30 dias Mandado insert");
+                                                        }
+                                                    }
+                                                }
+
+
+                                               else if (dias >= 46 && dias <= 60)
+                                               //   else if (dias >= 46 )
+                                                {
+
+                                                    //obtener email del presidente
+                                                    var sqlPres = "select * from [dbo].[TConsejeros] where presidente=1";
+                                                    var C0Pres = Conn.QuerySingle(sqlPres);
+                                                    if (C0Pres != null) { emailPresidente = C0Pres.email; }
+
+                                                    //obtener email del secretario
+                                                    var sqlsec = "select * from [dbo].[TConsejeros] where secretario=1";
+                                                    var C0sec = Conn.QuerySingle(sqlsec);
+                                                    if (C0sec != null) { emailSecretario = C0sec.email; }
+
+                                                    //obtener email de la persona asignada al caso
+                                                    var sqlenc = "select * from [dbo].[TSolicitudTramite] where id=@0";
+                                                    var C0enc = Conn.QuerySingle(sqlenc, row.id);
+                                                    if (C0enc != null)
+                                                    {
+                                                        var sqlsec2 = "select * from [dbo].[TConsejeros] where id=@0";
+                                                        var C0sec2 = Conn.QuerySingle(sqlsec2, C0enc.asignado);
+                                                        if (C0sec2 != null) { emailEncargadoCaso = C0sec2.email; nombreEncargado = C0sec2.nombre_consejero; }
+                                                    }
+
+                                                    @Html.Raw("<font color=red><strong><h1>" + dias + "</h1></strong></font>");
+
+
+                                                    if (EsLocalHost != "1")
+                                                    {
+
+                                                        //revisar si el mail ya se mando a los 45 dias si no no mandarlo
+                                                        var sqldias = "select CuarentaYCincoDias from [dbo].[TEmailsMandados] where idTSolicitudTramite =@0";
+                                                        var Cdias = Conn.QuerySingle(sqldias, row.id);
+                                                        if (Cdias == null)
+                                                        {
+                                                            WebMail.Send(to: emailPresidente, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 45 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 45 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            WebMail.Send(to: emailSecretario, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 45 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 45 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            if (emailPresidente != emailEncargadoCaso && emailSecretario != emailEncargadoCaso)
+                                                            {
+                                                                WebMail.Send(to: emailEncargadoCaso, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 45 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 45 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            }
+                                                        }
+
+
+                                                    }
+                                                    //mandar correo de mas de 45 dias
+                                                    var sqlT2q = "select * from [dbo].[TEmailsMandados] where idTsolicitudTramite=@0";
+                                                    var C0nxt2q = Conn.QuerySingle(sqlT2q, row.id);
+                                                    if (C0nxt2q != null)
+                                                    {
+                                                        var sqlInsertw = "UPDATE [dbo].[TEmailsMandados] SET CuarentaYCincoDias = '1' WHERE idTSolicitudTramite= @0";
+                                                        var CINw = Conn.QuerySingle(sqlInsertw, row.id);
+                                                        if (CINw != null)
+                                                        { @Html.Raw("Email 45 dias Mandado update");
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    var sqlInsert = "INSERT INTO [dbo].[TEmailsMandados] (idTSolicitudTramite, CuarentaYCincoDias) VALUES (@0,@1);";
+                                                    var CIN = Conn.QuerySingle(sqlInsert, row.id, 1);
+                                                    if (CIN != null)
+                                                    { @Html.Raw("Email 45 dias Mandado insert");
+                                                }
+                                            }
+
+                                        }
+
+
+                                        else if (dias >= 61)
+                                        {
+
+                                            //obtener email del presidente
+                                            var sqlPres = "select * from [dbo].[TConsejeros] where presidente=1";
+                                            var C0Pres = Conn.QuerySingle(sqlPres);
+                                            if (C0Pres != null) { emailPresidente = C0Pres.email; }
+
+                                            //obtener email del secretario
+                                            var sqlsec = "select * from [dbo].[TConsejeros] where secretario=1";
+                                            var C0sec = Conn.QuerySingle(sqlsec);
+                                            if (C0sec != null) { emailSecretario = C0sec.email; }
+
+                                            //obtener email de la persona asignada al caso
+                                            var sqlenc = "select * from [dbo].[TSolicitudTramite] where id=@0";
+                                            var C0enc = Conn.QuerySingle(sqlenc, row.id);
+                                            if (C0enc != null)
+                                            {
+                                                var sqlsec2 = "select * from [dbo].[TConsejeros] where id=@0";
+                                                var C0sec2 = Conn.QuerySingle(sqlsec2, C0enc.asignado);
+                                                if (C0sec2 != null) { emailEncargadoCaso = C0sec2.email; nombreEncargado = C0sec2.nombre_consejero; }
+                                            }
+
+                                                    @Html.Raw("<font color='#B22D00'><strong><h1>" + dias + "</h1></strong></font>");
+
+
+                                                    if (EsLocalHost != "1")
+                                                    {
+
+                                                        //revisar si el mail ya se mando a los 60 dias si no no mandarlo
+                                                        var sqldias = "select SesentaDias from [dbo].[TEmailsMandados] where idTSolicitudTramite =@0";
+                                                        var Cdias = Conn.QuerySingle(sqldias, row.id);
+                                                        if (Cdias == null)
+                                                        {
+                                                            WebMail.Send(to: emailPresidente, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 60 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 60 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            WebMail.Send(to: emailSecretario, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 60 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 60 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            if (emailPresidente != emailEncargadoCaso && emailSecretario != emailEncargadoCaso)
+                                                            {
+                                                                WebMail.Send(to: emailEncargadoCaso, subject: "EL CASO CON FOLIO: " + row.id + " TIENE MAS DE 60 DIAS EN REVISION ", body: "Le comunicamos que el caso con folio: " + row.id + " tiene mas de 60 dias en revision, este caso ha sido asignado a: " + nombreEncargado + " Le pedimos agilice el cierre de este caso");
+                                                            }
+                                                        }
+
+                                                    }
+
+                                                    //mandar correo de mas de 60 dias
+                                                    var sqlT2q = "select * from [dbo].[TEmailsMandados] where idTsolicitudTramite=@0";
+                                                    var C0nxt2q = Conn.QuerySingle(sqlT2q, row.id);
+                                                    if (C0nxt2q != null)
+                                                    {
+                                                        var sqlInsertw = "UPDATE [dbo].[TEmailsMandados] SET SesentaDias = '1' WHERE idTSolicitudTramite= @0";
+                                                        var CINw = Conn.QuerySingle(sqlInsertw, row.id);
+                                                        if (CINw != null)
+                                                        { @Html.Raw("Email 60 dias Mandado update");
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    var sqlInsert = "INSERT INTO [dbo].[TEmailsMandados] (idTSolicitudTramite, SesentaDias) VALUES (@0,@1);";
+                                                    var CIN = Conn.QuerySingle(sqlInsert, row.id, 1);
+                                                    if (CIN != null)
+                                                    { @Html.Raw("Email 60 dias Mandado insert");
+                                                }
+                                            }
+
+
+                                        }
+
+
+                                    }
+                                    else
+                                    {@Html.Raw("Sin datos");
+                                                }
+
+                                                        }
+
+                                                    </td>
+                                                </tr>
+                                            }
+
+
+
+
+
+                                        </table>
+                                    </div>
+                                    <!-- /.box-body -->
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                            </div>
+                        </div>
+
+
+
+
+
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </section>
+</div>
+
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}

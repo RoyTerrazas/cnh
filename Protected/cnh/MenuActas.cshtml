@@ -1,0 +1,254 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Administación de Actas";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+    //-------------------------------------------------------------------------------------------------------------
+
+
+    int AnnoActual = 0, MesActual = 0;
+    string AnnoActuall = "", MesActuall = "", alertaMessage = "", id = "";
+    AnnoActual = DateTime.Today.Year;
+    MesActual = DateTime.Today.Month;
+    AnnoActuall = Request.Form["anno"];
+    MesActuall = Request.Form["mes"];
+    string selectQueryString = "";
+    if (AnnoActuall == null) { AnnoActuall = Convert.ToString(DateTime.Today.Year); }
+    if (AnnoActuall == "") { AnnoActuall = Convert.ToString(DateTime.Today.Year); }
+    if (MesActuall == null) { MesActuall = Convert.ToString(DateTime.Today.Month); }
+
+
+    if (MesActuall == "0" && AnnoActuall != "")
+    {//filtrado por todos los meses
+        selectQueryString = "select * from TAcuerdosCNH where year(fecha)='" + AnnoActuall + "' order by fecha desc";
+
+    }
+
+    if (MesActuall == "" && AnnoActuall == "0")
+    {//filtrado por todos los años
+        selectQueryString = "select * from TAcuerdosCNH where month(fecha)='" + MesActuall + "' order by fecha desc";
+    }
+
+    if (AnnoActuall == "0" && MesActuall == "0")
+    {//filtrado por todos los meses y años
+        selectQueryString = "select * from TAcuerdosCNH order by fecha desc ";
+    }
+
+    if (AnnoActuall != "" && MesActuall != "0")
+    {//filtrado normal con mes y año
+        selectQueryString = "select * from TAcuerdosCNH where month(fecha)='" + MesActuall + "' and year(fecha)='" + AnnoActuall + "' order by fecha desc";
+    }
+
+
+    string enviado = "";
+    enviado = Request.Form["enviado"];
+    id = Request.Form["id"];
+    if (IsPost && enviado == "1")
+    {
+        var deleteCommand = "DELETE FROM TAcuerdosCNH where Id_Acuerdo=@0";
+        Conn.Execute(deleteCommand, id);
+        alertaMessage = "Se ha borrado el registro.";
+    }
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Historial de Acuerdos<small>Corte Nacional de Honor</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Menú de actas de la CNH">Menú Acuerdos</a></li>
+
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title">Visualización de actas de la CNH</h3>
+                    </div>
+                    <form name="forma" id="forma" method="post">
+                        <div class="box-body table-responsive">
+                            <div class="row">
+                                <div class="col-sm-4"> </div>
+
+                             
+
+                                <div class="col-sm-4 pull-right">
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Mes: </label>
+
+                                            <select class="form-control" name="mes" onchange="Mandar();">
+                                                <option value="0" @if (MesActuall == "0") { @Html.Raw("selected")       ; }>TODOS</option>
+                                                <option value="1" @if (MesActuall == "1") { @Html.Raw("selected")       ; }>ENERO</option>
+                                                <option value="2" @if (MesActuall == "2") { @Html.Raw("selected")       ; }>FEBRERO</option>
+                                                <option value="3" @if (MesActuall == "3") { @Html.Raw("selected")       ; }>MARZO</option>
+                                                <option value="4" @if (MesActuall == "4") { @Html.Raw("selected")       ; }>ABRIL</option>
+                                                <option value="5" @if (MesActuall == "5") { @Html.Raw("selected")       ; }>MAYO</option>
+                                                <option value="6" @if (MesActuall == "6") { @Html.Raw("selected")       ; }>JUNIO</option>
+                                                <option value="7" @if (MesActuall == "7") { @Html.Raw("selected")       ; }>JULIO</option>
+                                                <option value="8" @if (MesActuall == "8") { @Html.Raw("selected")       ; }>AGOSTO</option>
+                                                <option value="9" @if (MesActuall == "9") { @Html.Raw("selected")       ; }>SEPTIEMBRE</option>
+                                                <option value="10" @if (MesActuall == "10") { @Html.Raw("selected")       ; }>OCTUBRE</option>
+                                                <option value="11" @if (MesActuall == "11") { @Html.Raw("selected")       ; }>NOVIEMBRE</option>
+                                                <option value="12" @if (MesActuall == "12") { @Html.Raw("selected")       ; }>DICIEMBRE</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Año: </label>
+                                            <select class="form-control" name="anno" onchange="Mandar();">
+                                                <option value="0" @if (AnnoActuall == "0") { @Html.Raw("selected")       ; }>TODOS</option>
+                                                <option value="2020" @if (AnnoActuall == "2020") { @Html.Raw("selected")       ; }>2020</option>
+                                                <option value="2021" @if (AnnoActuall == "2021") { @Html.Raw("selected")       ; }>2021</option>
+                                                <option value="2022" @if (AnnoActuall == "2022") { @Html.Raw("selected")       ; }>2022</option>
+                                                <option value="2023" @if (AnnoActuall == "2023") { @Html.Raw("selected")       ; }>2023</option>
+                                                <option value="2024" @if (AnnoActuall == "2024") { @Html.Raw("selected")       ; }>2024</option>
+                                                <option value="2025" @if (AnnoActuall == "2025") { @Html.Raw("selected")       ; }>2025</option>
+                                                <option value="2026" @if (AnnoActuall == "2026") { @Html.Raw("selected")       ; }>2026</option>
+                                                <option value="2027" @if (AnnoActuall == "2027") { @Html.Raw("selected")       ; }>2027</option>
+                                                <option value="2028" @if (AnnoActuall == "2028") { @Html.Raw("selected")       ; }>2028</option>
+                                                <option value="2029" @if (AnnoActuall == "2029") { @Html.Raw("selected")       ; }>2029</option>
+                                                <option value="2030" @if (AnnoActuall == "2030") { @Html.Raw("selected")       ; }>2030</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            </div>
+
+                            <table id="example1" class="table table-bordered table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Folio Acuerdo</th>
+                                        <th>Folio Caso</th>
+                                        <th>Número Acuerdo</th>
+                                        <th>Descripción</th>
+                                        <th>Fecha</th>
+                                        <th>Descargar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                    @foreach (var row in Conn.Query(selectQueryString))
+                                    {
+                                        <tr>
+                                            <td>@row.Id_Acuerdo</td>
+                                            <td>@row.IdCasoAsignado</td>
+                                            <td>@row.NumAcuerdo.ToUpper()</td>
+                                            <td>@Functions.CortaCadena(row.TituloAcuerdo.ToUpper(), 250)</td>
+                                            <td>@Functions.formatofecha(row.Fecha).ToUpper()</td>
+                                            <td>
+                                                <a href="~/Protected/AcuerdosArch/@row.rutaArchivo" target="_blank">ACUERDO @row.NumAcuerdo.ToUpper()</a>
+                                            </td>
+
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+
+<script type="text/javascript">
+function Mandar(){
+  document.forma.submit();
+}
+</script>
+
+
+
+<script type="text/javascript">
+    function NuevoAcuerdo() {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'AdminActasNuevo');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'nuevo');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', 1);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+<script type="text/javascript">
+    function EditarAcuerdo(id) {
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'AdminActasNuevo');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'editar');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', 1);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+<script type="text/javascript">
+    function Borrar(id) {
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'AdminActas');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'enviado');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', 1);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>

@@ -1,0 +1,1081 @@
+@using System.Web.Mvc;
+@using System.Text;
+@using System;
+@using System.Web;
+@using System.Diagnostics;
+@using System.Collections;
+@using System.Globalization;
+
+
+<!--using System.Collections.Generic;
+using System.Linq;
+using System.Security;
+using System.Web;
+using System.Web.Hosting;
+    -->
+
+@functions{
+
+    //se necesita esto para que se pueden hacer las votaciones es para que el radioboton pueda ser elegido
+    //------------------------------------------------------------------------------------------------------------------
+    public static string Letra(int contador)  {
+        string letra = "";
+
+        switch (contador) {
+            case 0: letra = "a"; break;
+            case 1: letra = "b"; break;
+            case 3: letra = "c"; break;
+            case 4: letra = "d"; break;
+            case 5: letra = "e"; break;
+            case 6: letra = "f"; break;
+            case 7: letra = "g"; break;
+            case 8: letra = "h"; break;
+            case 9: letra = "i"; break;
+            case 10: letra = "j"; break;
+            case 11: letra = "k"; break;
+            case 12: letra = "l"; break;
+            case 13: letra = "m"; break;
+            case 14: letra = "n"; break;
+            case 15: letra = "o"; break;
+            case 16: letra = "p"; break;
+            case 17: letra = "q"; break;
+            case 18: letra = "r"; break;
+            case 19: letra = "s"; break;
+            case 20: letra = "t"; break;
+            case 21: letra = "u"; break;
+            case 22: letra = "v"; break;
+            case 23: letra = "w"; break;
+            case 24: letra = "x"; break;
+            case 25: letra = "y"; break;
+            case 26: letra = "z"; break;
+            case 27: letra = "aa"; break;
+            case 28: letra = "ab"; break;
+            case 29: letra = "ac"; break;
+            case 30: letra = "ad"; break;
+            case 31: letra = "ae"; break;
+            case 32: letra = "af"; break;
+            case 33: letra = "ag"; break;
+            case 34: letra = "ah"; break;
+            case 35: letra = "ai"; break;
+            case 36: letra = "aj"; break;
+            case 37: letra = "ak"; break;
+            case 38: letra = "al"; break;
+            case 39: letra = "am"; break;
+            case 40: letra = "an"; break;
+            case 41: letra = "ao"; break;
+            case 42: letra = "ap"; break;
+            case 43: letra = "aq"; break;
+            case 44: letra = "ar"; break;
+            case 45: letra = "as"; break;
+            case 46: letra = "at"; break;
+            case 47: letra = "aw"; break;
+            case 48: letra = "ax"; break;
+            case 49: letra = "ay"; break;
+            case 50: letra = "az"; break;
+        }
+        return letra;
+    }
+
+
+
+
+    //mando el numero de semana y año y me regresa las fechas
+    //------------------------------------------------------------------------------------------------------------------
+    public static int GetIso8601WeekOfYear(DateTime time)    {
+        DayOfWeek day = CultureInfo.InvariantCulture.Calendar.GetDayOfWeek(time);
+        if (day >= DayOfWeek.Monday && day <= DayOfWeek.Wednesday)        {
+            time = time.AddDays(3);
+        }
+        return CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(time, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+    }
+    public static DateTime FirstDateOfWeek(int year, int weekOfYear, System.Globalization.CultureInfo ci)    {
+        DateTime jan1 = new DateTime(year, 1, 1);
+        int daysOffset = (int)ci.DateTimeFormat.FirstDayOfWeek - (int)jan1.DayOfWeek;
+        DateTime firstWeekDay = jan1.AddDays(daysOffset);
+        int firstWeek = ci.Calendar.GetWeekOfYear(jan1, ci.DateTimeFormat.CalendarWeekRule, ci.DateTimeFormat.FirstDayOfWeek);
+        if ((firstWeek <= 1 || firstWeek >= 52) && daysOffset >= -3)      {
+            weekOfYear -= 1;
+        }
+        return firstWeekDay.AddDays(weekOfYear * 7);
+    }
+    //------------------------------------------------------------------------------------------------------------------
+
+
+    public static string MesTraduccion(int mes)    {
+        switch (mes)        {
+            case 1:
+                return "Enero";
+            case 2:
+                return "Febrero";
+            case 3:
+                return "Marzo";
+            case 4:
+                return "Abril";
+            case 5:
+                return "Mayo";
+            case 6:
+                return "Junio";
+            case 7:
+                return "Julio";
+            case 8:
+                return "Agosto";
+            case 9:
+                return "Septiembre";
+            case 10:
+                return "Octubre";
+            case 11:
+                return "Noviembre";
+            case 12:
+                return "Diciembre";
+            default:
+                return "No definido";
+        }  //switch
+    }
+
+
+
+
+
+
+    //--------------------------------------------------------------------------------------
+    //funcion que checa si una fecha es fecha
+    public static bool IsDate(DateTime fecha) {
+        DateTime d = fecha;
+        DateTime newDate;
+        bool result = DateTime.TryParse(d.ToShortDateString(), out newDate); // true means correct date
+        //  bool result1 = DateTime.TryParse("123", out newDate); // not a date
+        if (result == true) { return true; }
+        else { return false; }
+    }
+
+
+
+
+    //genera pdf a partir de un exe en una ruta dle server
+    //https://gist.github.com/johnnyreilly/2341776
+    public static string HtmlToPdf(string pdfOutputLocation, string outputFilenamePrefix, string[] urls,string[] options = null,string pdfHtmlToPdfExePath = "C:\\users\\roy_a\\Documents\\My Web Sites\\WebIMPE\\protected\\html_pdf\\wkhtmltopdf.exe")
+    {
+        string urlsSeparatedBySpaces = string.Empty;
+        try
+        {
+            //Determine inputs
+            if ((urls == null) || (urls.Length == 0))
+                throw new Exception("No input URLs provided for HtmlToPdf");
+            else
+                urlsSeparatedBySpaces = String.Join(" ", urls); //Concatenate URLs
+
+            string outputFolder = pdfOutputLocation;
+            string outputFilename = outputFilenamePrefix + ".PDF"; // assemble destination PDF file name
+            var p = new System.Diagnostics.Process()
+            {
+                StartInfo =
+                    {
+                        FileName = pdfHtmlToPdfExePath,
+                        Arguments = ((options == null) ? "" : String.Join(" ", options)) + " " + urlsSeparatedBySpaces + " " + outputFilename,
+                        UseShellExecute = false, // needs to be false in order to redirect output
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        RedirectStandardInput = true, // redirect all 3, as it should be all 3 or none
+                        WorkingDirectory = HttpContext.Current.Server.MapPath(outputFolder)
+                    }
+            };
+            p.Start();
+            // read the output here...
+            var output = p.StandardOutput.ReadToEnd();
+            var errorOutput = p.StandardError.ReadToEnd();
+            // ...then wait n milliseconds for exit (as after exit, it can't read the output)
+            p.WaitForExit(60000);
+            // read the exit code, close process
+            int returnCode = p.ExitCode;
+            p.Close();
+            // if 0 or 2, it worked so return path of pdf
+            if ((returnCode == 0) || (returnCode == 2))
+                return outputFolder + outputFilename;
+            else
+                throw new Exception(errorOutput);
+        }
+        catch (Exception exc)
+        {
+            throw new Exception("Problem generating PDF from HTML, URLs: " + urlsSeparatedBySpaces + ", outputFilename: " + outputFilenamePrefix, exc);
+        }
+    }
+    //-----------------------------------------------------------------------------------------------------
+    public static string fCalculaAnnos(int mes_inicio,int mes_baja,int anno_inicio,int anno_baja)
+    {
+        int meses_de_baja = 0;
+        int annosBaja = 0;
+        //meses_de_baja = Math.Abs((mes_baja - mes_inicio) + 12 * (anno_baja - anno_inicio));
+        meses_de_baja = Math.Abs((mes_baja - mes_inicio) + 12 * (anno_baja - anno_inicio));
+        annosBaja = Convert.ToInt32(meses_de_baja) / 12;//calcula los años de baja
+        return Convert.ToString(annosBaja);
+    }
+    public static void DiferenciaDeFechas(DateTime startDate, DateTime endDate, ref int dias, ref int meses, ref int annos)
+    {
+        /*Valida fecha*/
+        if (startDate.Date <= endDate.Date) {
+            TimeSpan difference = endDate.Subtract(startDate.Date);
+            if (difference.Ticks == 0) { @Html.Raw("0"); }
+            else if (difference.Ticks > 0) {
+                // This is to convert the timespan to datetime object
+                DateTime totalDate = DateTime.MinValue + difference;
+                int differenceInYears = totalDate.Year - 1;
+                int differenceInMonths = totalDate.Month - 1;
+                int differenceInDays = totalDate.Day - 1;
+                annos = differenceInYears;
+                meses = differenceInMonths;
+                dias = differenceInDays;
+            }
+        }
+    }
+    //-----------------------------------------------------------------------------------------------------------
+    //https://stackoverflow.com/questions/748062/how-can-i-return-multiple-values-from-a-function-in-c
+    public static void fCalculaDifFechas(DateTime startDate, DateTime endDate, ref int dias, ref int meses, ref int annos)
+    {//funcion que calcula el numero de dias entre dos fechas
+        annos = (endDate.Year - startDate.Year);
+        meses = (endDate.Month - startDate.Month);
+        dias = (endDate.Day - startDate.Day);
+        if (meses <= 0) {
+            annos -= 1;
+            meses += 12;
+        }
+        if (dias < 0)    {
+            meses -= 1;
+            int DiasAno = endDate.Year;
+            int DiasMes = endDate.Month;
+            if ((endDate.Month - 1) == 0)  {
+                DiasAno = DiasAno - 1;
+                DiasMes = 12;
+            }else { DiasMes = DiasMes - 1; }
+            dias += DateTime.DaysInMonth(DiasAno, DiasMes);
+        }
+        if (meses == 12) {
+            annos++;
+            meses = 0;
+        }
+        if (annos < 0) {//error la segunda fecha es menor a la primera
+            dias = 0;
+            meses = 0;
+            annos = 0;
+        }
+        if (annos > 0){
+            if (annos == 1) { annos = 1; }
+            //  else { annos = annos; }
+            if (meses > 0) {
+                if (meses == 1) { meses = 1; }
+                //    else { meses = meses;}
+            }else { meses = 0; }
+            if (dias > 0) {
+                if (dias == 1) { dias = 1; }
+                //   else {  dias = dias;}
+            }else { dias = 0; }
+        }
+        if (annos == 0 && meses == 0 && dias == 0) {//cuando todos son en cero
+            dias = 0;
+            meses = 0;
+            annos = 0;
+        }
+    }
+    //-----------------------------------------------------------------------------------------------------------
+
+    public static int GetMonthDifference(DateTime startDate, DateTime endDate)  {
+        int monthsApart = 12 * (startDate.Year - endDate.Year) + startDate.Month - endDate.Month;
+        return Math.Abs(monthsApart);
+    }
+
+    public static string fCalculaMeses(int dia1, int dia2, int mes1, int mes2, int anio1, int anio2)
+    {//funcion que calcula el numero de dias entre dos fechas
+        string totalDia;
+        int P_dia1 = 0, P_dia2 = 0, P_mes1 = 0, P_mes2 = 0, P_anio1 = 0, P_anio2 = 0, mes3 = 0, p_anio1 = 0;
+        P_dia1 = dia1;
+        P_dia2 = dia2;
+        P_mes1 = mes1;
+        P_mes2 = mes2;
+        P_anio1 = anio1;
+        P_anio2 = anio2;
+        mes3 = 0;
+        mes3 = P_mes1;
+        if (P_dia1 >= P_dia2) {
+            P_dia1 = P_dia1 - P_dia2;
+            if (P_dia1 >= 30) {
+                while (P_dia1 >= 30) {
+                    P_mes1 = P_mes1 + 1;
+                    P_dia1 = P_dia1 - 30;
+                }
+            }
+        }
+        else{
+            P_dia1 = (P_dia1 + 30) - P_dia2;
+            P_mes1 = P_mes1 - 1;
+            P_dia1 = P_dia1 - P_dia2;
+            while (P_dia1 <= P_dia2) {
+                P_dia1 = (P_dia1 + 30) - P_dia2;
+                P_mes1 = P_mes1 - 1;
+                P_dia1 = P_dia1 - P_dia2;
+            }
+        }
+        if (P_mes1 >= P_mes2){
+            P_mes1 = P_mes1 - P_mes2;
+            if (P_mes1 >= 12){
+                while (P_mes1 >= 12) {
+                    p_anio1 += 1;
+                    P_mes1 = P_mes1 - 12;
+                }
+            }
+        }
+        else {
+            while (mes3 < P_mes2)  {
+                mes3 = (mes3 + 12) - P_mes2;
+                P_anio2 = P_anio2 - 1;
+                mes3 = mes3 - P_mes2;
+                while (mes3 <= P_mes2)  {
+                    mes3 = (mes3 + 12) - P_mes2;
+                    P_anio2 = P_anio2 - 1;
+                    mes3 = mes3 - P_mes2;
+                }
+            }
+        }
+        totalDia = P_mes1.ToString().PadLeft(5, '#').Replace('#', ' ');
+        return totalDia;
+    }
+
+    public static string fCalculaDias(int dia1, int dia2, int mes1, int mes2, int anio1, int anio2)
+    {//funcion que calcula el numero de dias entre dos fechas
+        string totalDia;
+        int P_dia1 = 0, P_dia2 = 0, P_mes1 = 0, P_mes2 = 0, P_anio1 = 0, P_anio2 = 0, mes3 = 0, p_anio1 = 0;
+        P_dia1 = dia1;
+        P_dia2 = dia2;
+        P_mes1 = mes1;
+        P_mes2 = mes2;
+        P_anio1 = anio1;
+        P_anio2 = anio2;
+        mes3 = 0;
+        mes3 = P_mes1;
+        if (P_dia1 >= P_dia2)
+        {
+            P_dia1 = P_dia1 - P_dia2;
+            if (P_dia1 >= 30)
+            {
+                while (P_dia1 >= 30)
+                {
+                    P_mes1 = P_mes1 + 1;
+                    P_dia1 = P_dia1 - 30;
+                }
+            }
+        }
+        else
+        {
+            P_dia1 = (P_dia1 + 30) - P_dia2;
+            P_mes1 = P_mes1 - 1;
+            P_dia1 = P_dia1 - P_dia2;
+            while (P_dia1 <= P_dia2)
+            {
+                P_dia1 = (P_dia1 + 30) - P_dia2;
+                P_mes1 = P_mes1 - 1;
+                P_dia1 = P_dia1 - P_dia2;
+            }
+        }
+        if (P_mes1 >= P_mes2)
+        {
+            P_mes1 = P_mes1 - P_mes2;
+            if (P_mes1 >= 12)
+            {
+                while (P_mes1 >= 12)
+                {
+                    p_anio1 += 1;
+                    P_mes1 = P_mes1 - 12;
+                }
+            }
+        }
+        else
+        {
+            while (mes3 < P_mes2)
+            {
+                mes3 = (mes3 + 12) - P_mes2;
+                P_anio2 = P_anio2 - 1;
+                mes3 = mes3 - P_mes2;
+                while (mes3 <= P_mes2)
+                {
+                    mes3 = (mes3 + 12) - P_mes2;
+                    P_anio2 = P_anio2 - 1;
+                    mes3 = mes3 - P_mes2;
+                }
+            }
+        }
+
+        totalDia = P_dia1.ToString().PadLeft(5, '#').Replace('#', ' ');
+        return totalDia;
+    }
+
+
+    //obtiene el nombre de la maquina que se conecta
+    public static string GetNombreComputadora() {
+        string strHostName = string.Empty;
+        strHostName = Dns.GetHostName();
+        return strHostName;
+    }
+
+
+
+
+    public static string FormatoFecha(DateTime fecha)    {
+        int mes = fecha.Month;
+        int dia = fecha.Day;
+        int anno = fecha.Year;
+        string regresar = "";
+        string mess = "";
+        string diaa = "";
+        if (Convert.ToString(Convert.ToString(mes).Length) == "1")        {
+            if (mes == 1) { mess = "01"; }
+            if (mes == 2) { mess = "02"; }
+            if (mes == 3) { mess = "03"; }
+            if (mes == 4) { mess = "04"; }
+            if (mes == 5) { mess = "05"; }
+            if (mes == 6) { mess = "06"; }
+            if (mes == 7) { mess = "07"; }
+            if (mes == 8) { mess = "08"; }
+            if (mes == 9) { mess = "09"; }
+        }
+        else { mess = Convert.ToString(mes); }
+
+        if (Convert.ToString(Convert.ToString(dia).Length) == "1")        {
+            if (dia == 1) { diaa = "01"; }
+            if (dia == 2) { diaa = "02"; }
+            if (dia == 3) { diaa = "03"; }
+            if (dia == 4) { diaa = "04"; }
+            if (dia == 5) { diaa = "05"; }
+            if (dia == 6) { diaa = "06"; }
+            if (dia == 7) { diaa = "07"; }
+            if (dia == 8) { diaa = "08"; }
+            if (dia == 9) { diaa = "09"; }
+        }
+        else { diaa = Convert.ToString(dia); }
+        //regresar=Convert.ToString(Convert.ToString(mes).Length);
+        //regresar = anno + "-" + mess + "-" + diaa;
+        regresar = anno + "-" + mess + "-" + diaa  ;
+        return regresar;
+    }
+    //-----------------------------------------------con rallas dd mm aaaa
+    public static string FormatoFechaparaTypeDateRallas(DateTime fecha)    {
+        int mes = fecha.Month;
+        int dia = fecha.Day;
+        int anno = fecha.Year;
+        string regresar = "";
+        string mess = "";
+        string diaa = "";
+        if (Convert.ToString(Convert.ToString(mes).Length) == "1")
+        {
+            if (mes == 1) { mess = "01"; }
+            if (mes == 2) { mess = "02"; }
+            if (mes == 3) { mess = "03"; }
+            if (mes == 4) { mess = "04"; }
+            if (mes == 5) { mess = "05"; }
+            if (mes == 6) { mess = "06"; }
+            if (mes == 7) { mess = "07"; }
+            if (mes == 8) { mess = "08"; }
+            if (mes == 9) { mess = "09"; }
+        }
+        else { mess = Convert.ToString(mes); }
+
+        if (Convert.ToString(Convert.ToString(dia).Length) == "1")        {
+            if (dia == 1) { diaa = "01"; }
+            if (dia == 2) { diaa = "02"; }
+            if (dia == 3) { diaa = "03"; }
+            if (dia == 4) { diaa = "04"; }
+            if (dia == 5) { diaa = "05"; }
+            if (dia == 6) { diaa = "06"; }
+            if (dia == 7) { diaa = "07"; }
+            if (dia == 8) { diaa = "08"; }
+            if (dia == 9) { diaa = "09"; }
+        }
+        else { diaa = Convert.ToString(dia); }
+        //regresar=Convert.ToString(Convert.ToString(mes).Length);
+        //regresar = anno + "-" + mess + "-" + diaa;
+        regresar = diaa + "-" + mess + "-" + anno;
+        return regresar;
+    }
+
+    //------------------------------para los input type date
+    public static string FormatoFechaparaTypeDate(DateTime fecha)    {
+        int mes = fecha.Month;
+        int dia = fecha.Day;
+        int anno = fecha.Year;
+        string regresar = "";
+        string mess = "";
+        string diaa = "";
+        if (Convert.ToString(Convert.ToString(mes).Length) == "1")  {
+            if (mes == 1) { mess = "01"; }
+            if (mes == 2) { mess = "02"; }
+            if (mes == 3) { mess = "03"; }
+            if (mes == 4) { mess = "04"; }
+            if (mes == 5) { mess = "05"; }
+            if (mes == 6) { mess = "06"; }
+            if (mes == 7) { mess = "07"; }
+            if (mes == 8) { mess = "08"; }
+            if (mes == 9) { mess = "09"; }
+        }
+        else { mess = Convert.ToString(mes); }
+
+        if (Convert.ToString(Convert.ToString(dia).Length) == "1")   {
+            if (dia == 1) { diaa = "01"; }
+            if (dia == 2) { diaa = "02"; }
+            if (dia == 3) { diaa = "03"; }
+            if (dia == 4) { diaa = "04"; }
+            if (dia == 5) { diaa = "05"; }
+            if (dia == 6) { diaa = "06"; }
+            if (dia == 7) { diaa = "07"; }
+            if (dia == 8) { diaa = "08"; }
+            if (dia == 9) { diaa = "09"; }
+        }
+        else { diaa = Convert.ToString(dia); }
+        //regresar=Convert.ToString(Convert.ToString(mes).Length);
+        //regresar = anno + "-" + mess + "-" + diaa;
+        regresar = diaa + "/" + mess + "/" + anno;
+        return regresar;
+    }
+    //----------------------------------------------------------
+
+    //------------------------------para los input type date
+    public static string FormatoFechaparaTypeDate2(DateTime fecha)
+    {
+        int mes = fecha.Month;
+        int dia = fecha.Day;
+        int anno = fecha.Year;
+        string regresar = "";
+        string mess = "";
+        string diaa = "";
+        if (Convert.ToString(Convert.ToString(mes).Length) == "1")
+        {
+            if (mes == 1) { mess = "01"; }
+            if (mes == 2) { mess = "02"; }
+            if (mes == 3) { mess = "03"; }
+            if (mes == 4) { mess = "04"; }
+            if (mes == 5) { mess = "05"; }
+            if (mes == 6) { mess = "06"; }
+            if (mes == 7) { mess = "07"; }
+            if (mes == 8) { mess = "08"; }
+            if (mes == 9) { mess = "09"; }
+        }
+        else { mess = Convert.ToString(mes); }
+
+        if (Convert.ToString(Convert.ToString(dia).Length) == "1")
+        {
+            if (dia == 1) { diaa = "01"; }
+            if (dia == 2) { diaa = "02"; }
+            if (dia == 3) { diaa = "03"; }
+            if (dia == 4) { diaa = "04"; }
+            if (dia == 5) { diaa = "05"; }
+            if (dia == 6) { diaa = "06"; }
+            if (dia == 7) { diaa = "07"; }
+            if (dia == 8) { diaa = "08"; }
+            if (dia == 9) { diaa = "09"; }
+        }
+        else { diaa = Convert.ToString(dia); }
+        //regresar=Convert.ToString(Convert.ToString(mes).Length);
+        //regresar = anno + "-" + mess + "-" + diaa;
+        regresar =  mess+ "/" + diaa +  "/" + anno;
+        return regresar;
+    }
+
+    //-----------------------------------------------------------------------
+    //funcion para validar numeros nulos
+    public static int ChkNum(int numero) {
+        if (Convert.ToString(numero) == null) {
+            return 0;
+        }
+        else {
+            return numero;
+        }
+    }
+
+    //para para los dobles
+    public static string ChkNumDouble(string numero)
+    {
+        if (Convert.ToString(numero)== null)
+        {
+            return "0";
+        }
+        else
+        {
+            return numero;
+        }
+    }
+
+    //-----------------------------------------------------------------------
+    public static string NombreMes(int numero)
+    {
+        string mes_txt = "";
+
+        switch (numero)
+        {
+            case 1:
+                mes_txt = "ENE.";
+                break;
+            case 2:
+                mes_txt = "FEB.";
+                break;
+            case 3:
+                mes_txt = "MAR.";
+                break;
+            case 4:
+                mes_txt = "ABR.";
+                break;
+            case 5:
+                mes_txt = "MAY.";
+                break;
+            case 6:
+                mes_txt = "JUN.";
+                break;
+            case 7:
+                mes_txt = "JUL.";
+                break;
+            case 8:
+                mes_txt = "AGO.";
+                break;
+            case 9:
+                mes_txt = "SEP.";
+                break;
+            case 10:
+                mes_txt = "OCT.";
+                break;
+            case 11:
+                mes_txt = "NOV.";
+                break;
+            case 12:
+                mes_txt = "DIC.";
+                break;
+            default:
+                mes_txt = "No definido";
+                break;
+        }  //switch
+        return mes_txt;
+    }
+
+    //--------------------------------------------------------------
+
+    // funcion formato de fecha
+    public static string formatofecha(DateTime fecha)
+    {
+        var mes = 0;
+        string mes_txt = "";
+        var dia = 0;
+        var anno = 0;
+        string fecha_regreso = "";
+        int hora = 0, minutos=0;
+
+        mes = fecha.Month;
+        dia = fecha.Day;
+        anno = fecha.Year;
+        hora = fecha.Hour;
+        minutos = fecha.Minute;
+
+
+        switch (mes)
+        {
+            case 1:
+                mes_txt = "Enero";
+                break;
+            case 2:
+                mes_txt = "Febrero";
+                break;
+            case 3:
+                mes_txt = "Marzo";
+                break;
+            case 4:
+                mes_txt = "Abril";
+                break;
+            case 5:
+                mes_txt = "Mayo";
+                break;
+            case 6:
+                mes_txt = "Junio";
+                break;
+            case 7:
+                mes_txt = "Julio";
+                break;
+            case 8:
+                mes_txt = "Agosto";
+                break;
+            case 9:
+                mes_txt = "Septiembre";
+                break;
+            case 10:
+                mes_txt = "Octubre";
+                break;
+            case 11:
+                mes_txt = "Noviembre";
+                break;
+            case 12:
+                mes_txt = "Diciembre";
+                break;
+            default:
+                mes_txt = "No definido";
+                break;
+        }  //switch
+
+        fecha_regreso = dia + " de " + mes_txt + " de " + anno +" - "+ hora+":"+minutos+" hrs." ;
+
+
+        return fecha_regreso;
+
+    }
+
+    // funcion formato de fecha
+    public static string formatofechaSinHora(DateTime fecha)
+    {
+        var mes = 0;
+        string mes_txt = "";
+        var dia = 0;
+        var anno = 0;
+        string fecha_regreso = "";
+        int hora = 0, minutos = 0;
+
+        mes = fecha.Month;
+        dia = fecha.Day;
+        anno = fecha.Year;
+        hora = fecha.Hour;
+        minutos = fecha.Minute;
+
+
+        switch (mes)
+        {
+            case 1:
+                mes_txt = "Enero";
+                break;
+            case 2:
+                mes_txt = "Febrero";
+                break;
+            case 3:
+                mes_txt = "Marzo";
+                break;
+            case 4:
+                mes_txt = "Abril";
+                break;
+            case 5:
+                mes_txt = "Mayo";
+                break;
+            case 6:
+                mes_txt = "Junio";
+                break;
+            case 7:
+                mes_txt = "Julio";
+                break;
+            case 8:
+                mes_txt = "Agosto";
+                break;
+            case 9:
+                mes_txt = "Septiembre";
+                break;
+            case 10:
+                mes_txt = "Octubre";
+                break;
+            case 11:
+                mes_txt = "Noviembre";
+                break;
+            case 12:
+                mes_txt = "Diciembre";
+                break;
+            default:
+                mes_txt = "No definido";
+                break;
+        }  //switch
+
+        fecha_regreso = dia + " de " + mes_txt + " de " + anno;
+
+
+        return fecha_regreso;
+
+    }
+
+    // funcion fecha corta
+
+    public static string formatofechaCorta(DateTime fecha)
+    {
+        var mes = 0;
+        string mes_txt = "";
+        var dia = 0;
+        var anno = 0;
+        string fecha_regreso = "";
+
+        mes = fecha.Month;
+        dia = fecha.Day;
+        anno = fecha.Year;
+
+
+        switch (mes)
+        {
+            case 1:
+                mes_txt = "Ene";
+                break;
+            case 2:
+                mes_txt = "Feb";
+                break;
+            case 3:
+                mes_txt = "Mar";
+                break;
+            case 4:
+                mes_txt = "Abr";
+                break;
+            case 5:
+                mes_txt = "May";
+                break;
+            case 6:
+                mes_txt = "Jun";
+                break;
+            case 7:
+                mes_txt = "Jul";
+                break;
+            case 8:
+                mes_txt = "Ago";
+                break;
+            case 9:
+                mes_txt = "Sep";
+                break;
+            case 10:
+                mes_txt = "Oct";
+                break;
+            case 11:
+                mes_txt = "Nov";
+                break;
+            case 12:
+                mes_txt = "Dic";
+                break;
+            default:
+                mes_txt = "No definido";
+                break;
+        }  //switch
+
+        fecha_regreso = dia + "/" + mes_txt + "/" + anno;
+
+        return fecha_regreso;
+
+    }
+
+
+
+
+    // funcion que pone ... en cadenas segun su longitud
+    public static string CortaCadena(string Cadena, int longitud)
+    {
+        // funcion poliformica cuando no se le manda la longitud la corta por defoult en 30 caracteres
+
+        int LongitudACortar = 30;
+
+        if (longitud == null)
+        {
+            if (Cadena == "" || Cadena == null) { }
+            else
+            {
+                var variable_cortada = Cadena.Substring(0, Math.Min(LongitudACortar, Cadena.Length));
+
+                if (Cadena.Length >= LongitudACortar)
+                {
+                    return variable_cortada + " ...";
+                }
+                else
+                {
+                    return variable_cortada;
+                }
+            }
+            return "";
+
+        }
+        else
+        {//  si se le manda la longitud entonces a cortarla dependiendo en la longitud que se mande
+
+            if (Cadena == "" || Cadena == null) { }
+            else
+            {
+                var variable_cortada = Cadena.Substring(0, Math.Min(longitud, Cadena.Length));
+
+                if (Cadena.Length >= longitud)
+                {
+                    return variable_cortada + " ...";
+                }
+                else
+                {
+                    return variable_cortada;
+                }
+            }
+            return "";
+        }
+    }
+    //----------------------------------------------------------------------------------------------------
+    // este es con el nombre del archivo y no el id
+    public static bool SeguridadAccesoRecursos(string Nombre_pagina)
+    {
+        var accesoGrupo = false;
+        var accesoPersonal = false;
+        int Rol_activo = 0;
+        bool hasLocalAccount = OAuthWebSecurity.HasLocalAccount(WebSecurity.CurrentUserId);
+        var db2 = Database.Open("Dashboard");
+        var sqlTexto0 = "SELECT RoleId from webpages_UsersInRoles WHERE UserId=" + WebSecurity.CurrentUserId;
+        var C000 = db2.QuerySingle(sqlTexto0);
+        if (C000 != null) {
+            Rol_activo = C000.RoleId;
+        }
+        var sqlTexto = "SELECT Id_Roles from VSeguridadAccesoRecursosGrupal WHERE Id_Roles=" + Rol_activo + " and Ruta='" + Nombre_pagina.Trim() + "'";
+        var C0 = db2.QuerySingle(sqlTexto);
+        if (C0 != null) {
+            accesoGrupo = true;
+        }
+        else{
+            accesoGrupo = false;
+        }
+        var sqlTextoo = "SELECT Id_UserProfile from VSeguridadAccesoRecursosPersonal WHERE Id_UserProfile=" + WebSecurity.CurrentUserId + " and Ruta='" + Nombre_pagina.Trim() + "'";
+        var C77 = db2.QuerySingle(sqlTextoo);
+        if (C77 != null) {
+            accesoPersonal = true;
+        }
+        else{
+            accesoPersonal = false;
+        }
+        db2.Close();
+        db2.Dispose();
+
+        if ((accesoGrupo == true || accesoPersonal == true) && hasLocalAccount == true)
+        { return true; }
+        else    {
+            Response.Redirect("~/protected/sinpermiso");
+            return false;
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------------
+    // este es con el nombre del archivo y no el id
+    public static bool SeguridadAccesoRecursos2(string Nombre_pagina)
+    {
+        var accesoGrupo = false;
+        var accesoPersonal = false;
+        int Rol_activo = 0;
+        bool hasLocalAccount = OAuthWebSecurity.HasLocalAccount(WebSecurity.CurrentUserId);
+        var db2 = Database.Open("Dashboard");
+
+        var sqlTexto0 = "SELECT RoleId from webpages_UsersInRoles WHERE UserId=" + WebSecurity.CurrentUserId;
+        var C000 = db2.QuerySingle(sqlTexto0);
+        if (C000 != null)
+        {
+            Rol_activo = C000.RoleId;
+        }
+
+        var sqlTexto = "SELECT Id_Roles from VSeguridadAccesoRecursosGrupal WHERE Id_Roles=" + Rol_activo + " and Ruta='" + Nombre_pagina.Trim() + "'";
+        var C0 = db2.QuerySingle(sqlTexto);
+        if (C0 != null){
+            accesoGrupo = true;
+        }
+        else {
+            accesoGrupo = false;
+        }
+
+        var sqlTextoo = "SELECT Id_UserProfile from VSeguridadAccesoRecursosPersonal WHERE Id_UserProfile=" + WebSecurity.CurrentUserId + " and Ruta='" + Nombre_pagina.Trim() + "'";
+        var C77 = db2.QuerySingle(sqlTextoo);
+        if (C77 != null)  {
+            accesoPersonal = true;
+        }
+        else {
+            accesoPersonal = false;
+        }
+
+        db2.Close();
+        db2.Dispose();
+
+        if ((accesoGrupo == true || accesoPersonal == true) && hasLocalAccount == true)
+        { return true; }
+        else  {
+            @Html.Raw(Nombre_pagina);
+            // Response.Redirect("~/protected/sinpermiso");
+            return false;
+        }
+    }
+
+    //------------------------------------------------------------------------------------------------------------
+
+    public static bool IsNumeric(string input) {
+        int test;
+        return int.TryParse(input, out test);
+    }
+    //------------------------------------------------------------------------------------------------------------
+
+    public static string RetornarMensajeCumpleanio(DateTime fecha) {
+        if (fecha == null) { return "ERROR EN LA FECHA DE NACIMIENTO"; }
+        else
+        {
+            var edad_formateada = "";
+            var mes = fecha.Month;
+            var anno = fecha.Year;
+            var dia = fecha.Day;
+            // Crear fechas
+            DateTime nacimiento = new DateTime(anno, mes, dia);
+            DateTime hoy = DateTime.Now;
+            // Años
+            int edadAnos = hoy.Year - nacimiento.Year;
+            if (hoy.Month < nacimiento.Month || (hoy.Month == nacimiento.Month &&
+            hoy.Day < nacimiento.Day))
+                edadAnos--;
+            // Meses
+            int edadMeses = hoy.Month - nacimiento.Month;
+            if (hoy.Day < nacimiento.Day)
+                edadMeses--;
+            if (edadMeses < 0)
+                edadMeses += 12;
+            edad_formateada = Convert.ToString(edadAnos) + " AÑOS CON " + Convert.ToString(edadMeses) + " MESES.";
+            return edad_formateada;
+        }
+    }
+    //------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+    //--------------------------------------------------------------------------------------------------------------
+
+    public static bool PermisosGrupos(int IdRecurso)
+    {
+        var acceso = false;
+        string RolIdn = "";
+        var db2 = Database.Open("Dashboard");
+
+        var sqlText01 = "SELECT RoleId FROM webpages_UsersInRoles WHERE Userid=@0";
+        var C01 = db2.QuerySingle(sqlText01, WebSecurity.CurrentUserId);
+        if (C01 != null) {
+            RolIdn = Convert.ToString(C01.RoleId);
+        }
+        var sqlTexto = "SELECT Id_Roles from webpages_AccesoRecursosPorGrupo WHERE Id_Roles=" + RolIdn + " and Id_webpages_Recursos=" + IdRecurso;
+        var C0 = db2.QuerySingle(sqlTexto);
+        if (C0 != null) {
+            acceso = true;
+            db2.Close();
+            db2.Dispose();
+            return acceso;
+        }
+        else  {
+            acceso = false;
+            db2.Close();
+            db2.Dispose();
+            return acceso;
+        }
+
+    }
+    //------------------------------------------------------------------------------------------------------------
+    public static bool PermisosUsuarios(int IdRecurso)
+    {
+        var acceso = false;
+        var db3 = Database.Open("Dashboard");
+        var sqlTextoo = "SELECT Id_Acceso_RecursosPorPersona from webpages_Acceso_RecursosPorPersona WHERE Id_UserProfile=" + WebSecurity.CurrentUserId + " and Id_webpages_Recursos=" + IdRecurso;
+        var C77 = db3.QuerySingle(sqlTextoo);
+        if (C77 != null) {
+            acceso = true;
+            db3.Close();
+            db3.Dispose();
+            return acceso;
+        }// if
+        else {
+            acceso = false;
+            db3.Close();
+            db3.Dispose();
+            return acceso;
+
+        }// else
+
+    }// de permisos usuarios
+}

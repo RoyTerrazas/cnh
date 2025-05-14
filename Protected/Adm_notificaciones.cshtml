@@ -1,0 +1,185 @@
+﻿
+
+@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Menú de administración de notificaciones";
+
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)   { Response.Redirect("AdminError"); }
+
+
+    //var mensaje_error="";
+    //var mensaje_exito="";
+    var resource = 0;
+    string id = "";
+    var anno = 0;
+    var mes = 0;
+    var dia = 0;
+    var fecha_formateada = "";
+    // este codigo parsea si es int para eliminar el error de que no llegue el request querystring
+    // esta seccion regreso parametros al sitelayout para mostrarle cual esta seleccionado y se ponga en azul como seleccionado
+    id = Request.Form["id"];
+
+
+
+
+    var borrar = false;
+    borrar = Convert.ToBoolean(Request.QueryString["borrar"]);
+    if (borrar = true && id != null)    {
+        var deleteCommand0 = "DELETE FROM TNotificaciones_leidas WHERE id_Tnotificaciones = @0";
+        Conn.Execute(deleteCommand0, id);
+        var deleteCommand = "DELETE FROM TNotificaciones WHERE id_notificaciones = @0";
+        Conn.Execute(deleteCommand, id);
+    }
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Menú Administración de notificaciones</h1>
+        <ol class="breadcrumb">
+            <li><a href="default" title="Dashboard"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+            <li class="active"><a href="#" title="Administración de notificaciones"><i class="fa  fa-envelope-square"></i> Administración de notificaciones</a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+
+        @{
+            if (Convert.ToBoolean(Request.QueryString["ex"]) == true)            {
+                <div class="span9" id="content">
+                    <div class="alert alert-success alert-block">
+                        <a class="close" data-dismiss="alert" href="#">&times;</a>
+                        <h4 class="alert-heading">Éxito!</h4>
+                        La notificación se agrego / modifico correctamente.
+                    </div>
+                </div>
+            }
+        }
+
+
+
+
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="text-right">
+                    <button class="btn bg-purple" title="Nueva notificación" onClick="location.href='Editar_Nueva_notificacion?nuevo=true&resource=@Request.QueryString["resource"]'"> Nueva notificación<i class="icon-user icon-white"></i></button>
+                </div>
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title"><i class="fa  fa-envelope-square"></i> Menú de administración de notificaciones</h3>
+                    </div>
+
+                    <div class="box-body">
+                        <div class="table-responsive">
+                            <table id="example1" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha  </th>
+                                        <th>Título</th>
+                                        <th>Estatus</th>
+                                        <th>Ver notificación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var db2 = Database.Open("Dashboard");
+                                        var selectQueryString = "SELECT fecha_notificacion,titulo_notificacion,publicado,id_notificaciones FROM TNotificaciones ORDER BY fecha_notificacion desc";
+                                        foreach (var row in db2.Query(selectQueryString))                                        {
+                                            anno = row.fecha_notificacion.Year;
+                                            mes = row.fecha_notificacion.Month;
+                                            dia = row.fecha_notificacion.Day;
+                                            fecha_formateada = dia + " DE " + @Functions.MesTraduccion(mes).ToUpper() + " DE " + anno;
+                                            <tr>
+                                                <td> @fecha_formateada</td>
+                                                <td> @row.titulo_notificacion.ToUpper()...</td>
+                                                <td>
+                                                    @{
+                                                        if (row.publicado == true)  {  @Html.Raw("<font color=green>PUBLICADO</font>")
+                                                        }
+                                                        else{@Html.Raw("<font color=red>NO PUBLICADO</font>")}
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-default">Acciones</button>
+                                                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                            <span class="caret"></span>
+                                                            <span class="sr-only">Opciones</span>
+                                                        </button>
+                                                        <ul class="dropdown-menu" role="menu">
+                                                            <li><a href="javascript:Editar(@row.id_notificaciones);">Editar</a></li>
+                                                            <li class="divider"></li>
+                                                             <li><a href="javascript:Borrar(@row.id_notificaciones);" data-confirm="¿Esta seguro que desea borrar el registro?">Borrar</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                                        }
+                                                        db2.Close();
+                                                        db2.Dispose();
+                                    }
+                                </tbody>
+                                <tfoot>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+        </div>
+        </div>
+    </section>
+
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+ 
+<script type="text/javascript">
+
+
+
+    function Editar(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'Editar_Nueva_notificacion');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        myvar2.setAttribute('name', 'editar');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', true);
+        form.appendChild(myvar);
+        form.appendChild(myvar2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+
+
+
+    function Borrar(id)        {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'Adm_notificaciones');
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'id');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', id);
+            form.appendChild(myvar);
+            document.body.appendChild(form);
+            form.submit();
+    }
+    </script>

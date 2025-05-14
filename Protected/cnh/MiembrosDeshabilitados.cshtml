@@ -1,0 +1,164 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Administración de miembros deshabilitados de la CNH";
+    // script de seguridad
+       string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+      if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+    int TipoCuenta = 0;
+    var sqlText01n = "SELECT RoleId FROM webpages_UsersInRoles WHERE Userid=@0";
+    var C01n = Conn.QuerySingle(sqlText01n, WebSecurity.CurrentUserId);
+    if (C01n != null) { TipoCuenta = C01n.RoleId; }
+
+    // deshabilitar
+    string id = "", exito = "";
+    id = Request.Form["id"];
+
+    if (IsPost && id != "")
+    {
+
+        var sqlText00 = "select * from [dbo].[TConsejeros] WHERE id=@0";
+        var C01 = Conn.QuerySingle(sqlText00, id);
+        if (C01 != null)
+        {
+
+            //   @Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+            //  @id;
+            //  return;
+            var Cadena = "UPDATE TConsejeros SET ver =1 WHERE id=@0";
+            var Update = Conn.QuerySingle(Cadena, id);
+            exito = "El registro se mostrara en la lista de consejeros.";
+
+        }
+
+    }
+
+}
+
+
+
+
+
+<form method="post" name="forma">
+    <div class="content-wrapper">
+        <section class="content-header">
+            <h1>
+                Miembros de la Corte Nacional de Honor
+                <small>Administración de cuentas deshabilitadas de miembros</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="#" title="Administración de usuarios"><i class="fa  fa-user"></i> Cuentas deshabilitadas  de miembros</a></li>
+            </ol>
+        </section>
+
+        <section class="content">
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="box">
+                        <div class="box-header">    <i class="fa  fa-user"></i>Miembros no activos de la CNH<br />   </div>
+
+                        <div class="box-body">
+                            <div class="row">
+
+                                <div class="col-sm-3 text-left">
+
+                                </div>
+
+                                <div class="col-sm-5 text-left">
+
+                                    <button type="button" class="btn  bg-purple" title="Miembros activos" onclick="javascript:VerDeshabilitados();"> Miembros Activos</button><br />
+                                </div>
+
+
+
+                                <div class="col-sm-2 text-right"> &nbsp;            </div>
+                            </div>
+                            <br />
+                            <div class="table-responsive">
+                                <table id="example1" class="table table-bordered table-striped ">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Visible</th>
+                                            <th>Opciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            string selectQueryString = "";
+
+                                            selectQueryString = "select * from [dbo].[TConsejeros] where ver=0 ";
+
+                                        }
+
+                                        @foreach (var row in Conn.Query(selectQueryString))
+                                        {
+
+
+
+                                            <tr>
+                                                <td> <small>@row.nombre_consejero </small></td>
+                                                <td> <small> @if (row.ver==true) {@Html.Raw("ACTIVO"); } else {@Html.Raw("NO ACTIVO"); } </small></td>
+                                                <td>
+
+
+
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-default" onclick="javascript:habilitar('@row.id');">Habilitar</button>
+                                               
+                                                    </div>
+
+
+                                                </td>
+
+
+
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table><br />
+                            </div>
+                            <input type="hidden" name="accion" id="accion" value="" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</form>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+<script type="text/javascript">
+    function VerDeshabilitados() {
+        window.location.replace("miembros");
+    }
+</script>
+
+
+
+
+<script type="text/javascript">
+    function habilitar(Id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'MiembrosDeshabilitados');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', Id);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>

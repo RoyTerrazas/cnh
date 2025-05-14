@@ -1,0 +1,101 @@
+@using System.IO;
+@using ZXing;
+@using ZXing.Common;
+@using ZXing.QrCode;
+
+@functions{
+
+    public static System.Drawing.Bitmap CreateQrCode(string data)
+    {
+        //specify desired options
+        QrCodeEncodingOptions options = new QrCodeEncodingOptions()
+        {
+            CharacterSet = "UTF-8",
+            DisableECI = true,
+            Width = 250,
+            Height = 250
+        };
+
+        //create new instance and set properties
+        BarcodeWriter writer = new BarcodeWriter()
+        {
+            Format = BarcodeFormat.QR_CODE,
+            Options = options
+        };
+
+        //create QR code and return Bitmap
+        return writer.Write(data);
+    }
+
+    public static byte[] GetQrCodeBytes(string data, System.Drawing.Imaging.ImageFormat imgFormat)
+    {
+        using (MemoryStream ms = new MemoryStream())
+        {
+            //create QR code and save to file
+            using (System.Drawing.Bitmap bmp = CreateQrCode(data))
+            {
+                //save to MemoryStream
+                bmp.Save(ms, imgFormat);
+            }
+
+            return ms.ToArray();
+        }
+    }
+
+    public static string GetTextFromQrCode(byte[] qrcodeBytes)
+    {
+        //specify desired options
+        DecodingOptions options = new DecodingOptions()
+        {
+            CharacterSet = "UTF-8"
+        };
+
+        //create new instance and set properties
+        BarcodeReader reader = new BarcodeReader() { Options = options };
+
+        using (MemoryStream ms = new MemoryStream(qrcodeBytes))
+        {
+            using (System.Drawing.Bitmap bmp = (System.Drawing.Bitmap)System.Drawing.Bitmap.FromStream(ms))
+            {
+                //decode QR code
+                Result r = reader.Decode(bmp);
+
+                //return QR code text
+                return r.Text;
+            }
+        }
+    }
+
+    public static string GetTextFromQrCode(string filename)
+    {
+        //specify desired options
+        DecodingOptions options = new DecodingOptions()
+        {
+            CharacterSet = "UTF-8"
+        };
+
+        //create new instance and set properties
+        BarcodeReader reader = new BarcodeReader() { Options = options };
+
+        //read image and convert to Bitmap
+        using (System.Drawing.Bitmap bmp = (System.Drawing.Bitmap)System.Drawing.Bitmap.FromFile(filename))
+        {
+            //decode QR code
+            Result r = reader.Decode(bmp);
+
+            //return QR code text
+            return r.Text;
+        }
+    }
+
+    public static void SaveQrCode(string data, string filename, System.Drawing.Imaging.ImageFormat imgFormat)
+    {
+        //create QR code and save to file
+        using (System.Drawing.Bitmap bmp = CreateQrCode(data))
+        {
+            bmp.Save(filename, imgFormat);
+        }
+    }
+
+
+}

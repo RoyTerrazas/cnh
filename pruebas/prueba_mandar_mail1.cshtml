@@ -1,0 +1,35 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agregar archivo</title>
+</head>
+<body>
+    <h2>mandar email con archivo adjunto</h2>
+    <form method="post" action="prueba_mandar_mail2.cshtml">
+        <div>
+            Nombre:
+            <input type="text" name="customerName" />
+        </div>
+
+        <div>
+            email:
+            <input type="text" name="customerEmail" />
+        </div>
+
+        <div>
+            titulo: <br />
+            <input type="text" size=30 name="subjectLine" />
+        </div>
+
+        <div>
+            archivo: <br />
+            <input type="file" size=60 name="fileAttachment" />
+        </div>
+
+        <div>
+            <input type="submit" value="Submit" />
+        </div>
+    </form>
+</body>
+</html>

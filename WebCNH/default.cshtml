@@ -1,0 +1,445 @@
+﻿
+@{ 
+
+    var Conn = Database.Open("Dashboard");
+
+
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Corte Nacional de Honor</title>
+
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+
+
+
+
+
+</head>
+
+<body id="page-top">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="#page-top">  CORTE NACIONAL DE HONOR</a>
+
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="#portfolio">Integrantes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Masthead -->
+    <header class="masthead">
+        <div class="container h-100">
+            <div class="row h-100 align-items-center justify-content-center text-center">
+                <div class="col-lg-10 align-self-end">
+                    <img src="img/cnh_blanco.svg" class="img-responsive" width="345" />
+
+                    <hr class="divider my-4">
+                </div>
+                <div class="col-lg-8 align-self-baseline">
+                    <p class="text-white-75 font-weight-light mb-5">En este sitio usted aprendera sobre el hacer y quehacer de la Corte Nacional de Honor, así como podrá ingresar solicitudes de revisión de casos y ver el estatus de los mismos.</p>
+                    <a class="btn btn-primary btn-xl js-scroll-trigger" href="#about">Descubre más</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section class="page-section bg-primary" id="about">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0">Acerca de la Corte Nacional de Honor</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4 text-justify">
+                        Dentro de nuestra asociación tenemos órganos de gobernanza para  encaminar los objetivos del Movimiento Scout a su cumplimiento. La Corte Nacional de Honor es un órgano integrado por un equipo de dirigentes nombrados por la Asamblea Nacional de la ASMAC, nuestra finalidad es resolver controversias generadas por los demás niveles de nuestra asociación al momento de aplicar los ordenamientos. Somos de acuerdo a los estatutos la última instancia a la que acuden los miembros de nuestra organización que solicitan que revisemos y resolvamos las diferencias de interpretación y aplicación de las normas de la ASMAC. <br />
+
+                    </p>
+                    <p class="text-white-50 mb-4 text-center">
+                        ¡¡¡Con gusto estamos a tus órdenes!!! <br />Tu Amigo y Hermano Scout
+
+                        <font color="white">
+
+                            <br /><strong>Luis Alfonso Euan Conrado</strong>
+                            <br /> Presidente de la CNH
+
+                        </font>
+                    </p>
+
+                    </p>
+                    <br /><br />
+                    <h2 class="text-white mt-0">¿Qué es la Corte Nacional de Honor?</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4 text-justify">
+                        Nuestro reglamento la define como el órgano de gobierno integrado por miembros electos por la Asamblea Nacional, encargado
+                        de la interpretación y aplicación de los Estatutos y la resolución de conflictos.
+                    </p>
+
+                    <h2 class="text-white mt-0">¿Qué dicen los estatutos con respecto a la Corte Nacional de Honor?</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4 text-justify">
+
+                        <strong>Artículo 63 de los estatutos. Integración</strong> <br /><br />
+                        La Corte Nacional de Honor se integrará con seis miembros, quienes
+                        serán electos por la Asamblea Nacional y deberán contar con los
+                        siguientes requisitos:<br /><br />
+                        a. Ser ciudadano mexicano.<br />
+                        b. Ser mayor de treinta y cinco años de edad al momento de la
+                        elección firmada por quien haya presidido la sesión, por quien
+                        haya actuado como secretario, así como por los asistentes que
+                        deseen hacerlo.<br />
+                        c. Tener cuando menos quince años de antigüedad como miembro
+                        activo de la Asociación.<br />
+                        d. No tener relación laboral, comercial o de servicio con la Asociación,
+                        que implique cualquier clase de compensación, remuneración
+                        y/o pago al menos con doce meses de anticipación
+                        a la fecha de la elección.<br />
+                        e. Tener capacidad para desempeñar el cargo, prestigio, méritos
+                        extraordinarios y arraigo en el Movimiento Scout.<br />
+                        f. No haber sido condenado por la comisión de algún delito.<br />
+                        <br /><br />
+                        <strong>Artículo 64 de los estatutos. Restricción de sus integrantes</strong><br /><br />
+                        Los miembros de la Corte Nacional de Honor no podrán tener ningún
+                        otro cargo en la Asociación.<br /><br />
+                        <strong>Artículo 65 de los estatutos. Duración</strong><br /><br />
+                        Los miembros de la Corte Nacional de Honor durarán en su cargo
+                        tres años.
+                        Si se produjeran bajas de miembros de la Corte Nacional de Honor
+                        posterior a la Asamblea Nacional que los eligió, el o los miembros en
+                        funciones podrán designar a quienes cubran la o las vacantes, mientras
+                        se celebra la siguiente Asamblea Nacional que podrá revocar la
+                        designación y, en su caso, elegir a la persona que cubra la vacante.
+                        La Asamblea Nacional cada año elegirá de entre los cinco candidatos
+                        que le sean presentados por el Consejo Nacional, a dos miembros
+                        que sustituyan a los que hayan terminado su gestión.
+                        Dos candidatos serán propuestos por la Corte Nacional de Honor
+                        y tres por el Consejo Nacional. Los así elegidos, permanecerán en
+                        su cargo hasta que la Asamblea Nacional designe a quienes deban
+                        sustituirlos, pero pueden ser reelectos.
+                    </p>
+
+                    <h2 class="text-white mt-0">¿Cuáles son las funciones de la Corte Nacional de Honor?</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4 text-justify">
+                        <strong>Artículo 66 de los estatutos. Funciones</strong><br /><br />
+                        La Corte Nacional de Honor tendrá las siguientes funciones:<br /><br />
+                        a. Designar de entre sus miembros a su presidente y secretario.<br />
+                        b. Elaborar el reglamento para su funcionamiento interno.<br />
+                        c. Resolver las discrepancias que le presenten los miembros o
+                        algún órgano de la Asociación sobre la interpretación y aplicación
+                        de los Estatutos, basándose en los Principios, Promesa y Ley
+                        Scouts, informando a la autoridad correspondiente, fundando y
+                        motivando sus resoluciones en las disposiciones normativas.<br />
+                        d. Resolver los conflictos de competencia que surjan entre los
+                        órganos o miembros de la Asociación.<br />
+                        e. Resolver los casos de violación de la Promesa Scout, de estos
+                        Estatutos o del Reglamento que le sean presentados por la
+                        Asamblea Nacional, el Consejo Nacional o el interesado, en
+                        apelación a decisiones que hayan sido tomadas de acuerdo
+                        con el procedimiento que marca el Reglamento, oyendo previamente
+                        a las partes.<br />
+                        f. Suplir las vacantes que surjan dentro de la Corte Nacional de
+                        Honor y que deberán ser ratificadas por la Asamblea Nacional.<br />
+                        g. Aprobar el otorgamiento de los siguientes reconocimientos
+                        scouts:<br />
+                        • La Medalla del Berrendo de Plata.<br />
+                        • La Medalla de la Bellota de Plata<br />
+                        • La Carita Sonriente de Oro.<br />
+                        h. Informar a la Asamblea Nacional sobre los resultados de su trabajo
+                        en la misma sesión en la que el Consejo Nacional presente
+                        su informe anual.<br />
+                        i. Las demás que se fijen en estos Estatutos y por la Asamblea
+                        Nacional.<br />
+                        Para cumplir con sus funciones, la Corte Nacional de Honor recibirá
+                        los recursos solicitados en el presupuesto.
+
+                    </p>
+
+                    <h2 class="text-white mt-0">¿Qué es el recurso de reconsideración?</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4 text-justify">
+                        <strong>Artículo 67 de los Estatutos. Recurso de reconsideración :</strong><br /><br />
+                        Una vez tomada la resolución por la Corte Nacional de Honor, cualquier
+                        miembro u órgano de la Asociación, que sea parte en la citada
+                        resolución, podrá, en un término de treinta días a partir de que sea
+                        recibida la notificación, solicitar, por escrito, la revisión de dicha resolución.
+                        La Corte Nacional de Honor deberá responder a dicha solicitud,
+                        con su ratificación, revocación o modificación, según sea el caso.
+                        La decisión final emitida por la Corte Nacional de Honor es inapelable.
+
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+        
+    <!-- Services Section -->
+    <section class="page-section" id="services">
+        <div class="container">
+            <h2 class="text-center mt-0"><br />Servicios de la CNH</h2>
+            <hr class="divider my-4">
+            <div class="row">
+
+
+
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                        <a href="solicitud">
+                            <i class="fas fa-4x fa-laptop-code text-primary mb-4"></i>
+                            <h3 class="h4 mb-2">Interposición de recursos</h3>
+                        </a>
+                        <p class="text-muted mb-0">Solicitar a la corte la revisión de un caso, una vez que la DEN ya ha dado su fallo y no se este deacuerdo.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                        <a href="seguimiento">
+                            <i class="fas fa-4x fa-globe text-primary mb-4"></i>
+                            <h3 class="h4 mb-2">Seguimiento</h3>
+                        </a>
+                        <p class="text-muted mb-0">Dar seguimiento del estatus del recurso de revisión en tiempo real.</p>
+                    </div>
+                </div>
+
+            </div>
+            <div class="row">
+
+
+
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                        <a href="estradoscnh">
+
+                            <i class="fas fa-4x fas fa-clipboard-check text-primary mb-4"></i>
+
+
+                            <h3 class="h4 mb-2">Estrados de la corte</h3>
+                        </a>
+                        <p class="text-muted mb-0">Revise como va su caso.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                        <a href="graphs">
+                            <i class="fas fa-4x fas fa-poll text-primary mb-4"></i>
+                            <h3 class="h4 mb-2">Estadísticas</h3>
+                        </a>
+                        <p class="text-muted mb-0">Revise las estadísticas de la CNH en tiempo real.</p>
+                    </div>
+                </div>
+
+            </div>
+            <div class="row">
+
+
+
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                       <a href="procesosancionadorpdf">
+                       
+
+                            <i class="fas fa-4x fas fa-exclamation-triangle text-primary mb-4"></i>
+
+
+                            <h3 class="h4 mb-2">Documentos de apoyo</h3>
+                        </a>
+                        <p class="text-muted mb-0">Proceso sancionador del inicio hasta la CNH.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 text-center">
+                    <div class="mt-5">
+                        <a href="videotutorial">
+                            <i class="fas fa-4x fas fa-video text-primary mb-4"></i>
+                            <h3 class="h4 mb-2">Tutorial</h3>
+                        </a>
+                        <p class="text-muted mb-0">Vídeo tutorial del uso de la plataforma de la CNH.</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+    <br /><br /><br />
+    <!-- Portfolio Section -->
+    <section id="portfolio">
+        <div class="container-fluid p-0">
+            <div class="row no-gutters">
+
+
+
+                @{
+                    string selectQueryString = "select * from TConsejeros where ver=1";
+                }
+                @foreach (var row in Conn.Query(selectQueryString))
+                {
+                    <div class="col-lg-4 col-sm-6">
+                        <a class="portfolio-box" href="~/WebCNH/img/@row.foto">
+                            <img class="img-fluid" src="~/WebCNH/img/@row.foto" width="615" height="369">
+                            <div class="portfolio-box-caption">
+                                <div class="project-category text-white-50">
+                                    @if (row.presidente == true)
+                                    {@Html.Raw("PRESIDENTE DE LA CORTE NACIONAL DE HONOR");
+                                }
+                                else
+                                {
+                                    if (row.secretario == true)
+                                    {@Html.Raw("SECRETARIO DE LA CORTE NACIONAL DE HONOR");
+                                }
+                                else
+                                {@Html.Raw("MIEMBRO DE LA CORTE NACIONAL DE HONOR");
+                            }
+                        }
+                                </div>
+                                <div class="project-name">  @row.nombre_consejero.ToUpper() </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+
+
+
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Call to Action Section -->
+    <!--
+    <section class="page-section bg-dark text-white">
+      <div class="container text-center">
+        <h2 class="mb-4">Free Download at Start Bootstrap!</h2>
+        <a class="btn btn-light btn-xl" href="https://startbootstrap.com/themes/creative/">Download Now!</a>
+      </div>
+    </section>
+      -->
+    <!-- Contact Section -->
+    <section class="page-section" id="contact">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="mt-0">Información de contacto</h2>
+                    <hr class="divider my-4">
+                    <p class="text-muted mb-5">¿Tiene preguntas?, estamos para servirte por favor contáctanos de la siguiente manera:</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 ml-auto text-center mb-5 mb-lg-0">
+                    <i class="fas fa-phone fa-3x mb-3 text-muted"></i>
+                    <div>
+                        <strong>Oficina Scout Nacional:</strong> <br />
+
+                        Córdoba 57, Colonia Roma Norte, Alcaldía Cuauhtémoc, C.P. 06700, CDMX <br />
+                        +52 (55) 5208 7122
+                    </div>
+                </div>
+                <div class="col-lg-4 mr-auto text-center">
+                    <i class="fas fa-envelope fa-3x mb-3 text-muted"></i>
+
+
+
+                    @{
+                        selectQueryString = "select * from TConsejeros where ver=1 order by nombre_Consejero ";
+                    }
+                    @foreach (var row in Conn.Query(selectQueryString))
+                    {
+                        <a class="d-block" href="mailto:@row.email" title="@row.nombre_Consejero">@row.nombre_Consejero  </a>
+                    }
+
+
+
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Asociación de Scouts de México A.C. <br />Corte Nacional de Honor <br />Copyright &copy; CNH. 2020 <br /> <br /> <a href="https://scouts.org.mx/aviso-de-privacidad/" title="aviso de provacidad" target="_blank"> AVISO DE PRIVACIDAD</a></div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+
+</body>
+
+</html>
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

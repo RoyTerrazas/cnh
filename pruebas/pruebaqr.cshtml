@@ -1,0 +1,71 @@
+@using System.IO;
+@using ZXing;
+@using ZXing.Common;
+@using ZXing.QrCode;
+
+
+@using System.Collections.Generic;
+@using System.Drawing;
+
+
+
+@using ZXing.QrCode.Internal;
+@using ZXing.Rendering;
+
+
+@{
+
+    //https://stackoverflow.com/questions/75237693/create-qrcode-with-c-sharp-and-save-it-as-an-image
+
+
+    //decodificar 1
+    //  string filename = @"C:\Temp\TestQrCode.png";
+    // string qrcodeText = QrCodeGenerator.GetTextFromQrCode(filename);
+
+    //decodificar2
+    //   string filename2 = @"C:\Temp\TestQrCode.png";
+    //  byte[] qrcodeBytes = File.ReadAllBytes(filename2);
+    //  string qrcodeText2 = QrCodeGenerator.GetTextFromQrCode(qrcodeBytes);
+
+
+    string qrcodeText = "cnhscouts.org.mx?revisarvalidezacuerdo=JH16706I";
+
+    string RutaArchivoCarg = "TestQrCode.png";
+    var filename = Server.MapPath("~/protected/AcuerdosArch/qr/" + RutaArchivoCarg);
+
+    //string filename = @"C:\Users\roy_a\OneDrive\Documentos\Sitios Web\cnh\pruebas\temp\TestQrCode.png";
+    string ext = Path.GetExtension(filename);
+
+    if (ext == ".bmp" || ext == ".dib" || ext == ".rle")
+    {
+        QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Bmp);
+    }
+    else if (ext == ".jpg" || ext == ".jpeg" || ext == ".jfif" || ext == ".jpe")
+    {
+        QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Jpeg);
+    }
+    else if (ext == ".png")
+    {
+        QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Png);
+    }
+
+
+
+    //-----------------------------------------------------
+
+
+    <html>
+<head></head>
+<body>
+  
+ 
+    <img src="~/Protected/AcuerdosArch/qr/TestQrCode.png" />
+</body>
+    </html>
+
+
+
+
+
+
+}

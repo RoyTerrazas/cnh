@@ -1,0 +1,12 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+
+    string idusuario = "";
+    idusuario = Request["id_usuario"];
+    var Cadena = "UPDATE TSolicitudes_Tramite_Leidas SET descargado2=1 WHERE id_TSolicitudTramite=@0";
+    var Update = Conn.QuerySingle(Cadena, idusuario);
+
+    Conn.Close();
+    Conn.Dispose();
+}
+

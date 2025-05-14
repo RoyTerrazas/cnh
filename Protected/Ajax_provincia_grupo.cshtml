@@ -1,0 +1,13 @@
+﻿@{
+    var ConnRegnal = Database.Open("Regnal");
+    string id = "";
+    id = Request["id"];
+    var selectQueryStringg = "select idgrupo,nombre,grupo_num,idprovincia from grupo where baja=0 and idprovincia=@0 and grupo_num<>0 and grupo_num<>900 order by nombre";  
+        <select id="grupo" required name="grupo" class="form-control  select">
+            <option value="">Seleccione</option>
+            @foreach (var rowg in ConnRegnal.Query(selectQueryStringg, id))  { <option value="@rowg.idgrupo">  @rowg.nombre.ToUpper() (G @rowg.grupo_num) </option>   }
+        </select>
+        ConnRegnal.Close();
+        ConnRegnal.Dispose();
+}
+

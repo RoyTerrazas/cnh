@@ -1,0 +1,184 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Crear  nueva notificación";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+    var nuevo = false;
+    var editar = false;
+    var mensaje_error = "";
+    var mensaje_exito = "";
+    nuevo = Convert.ToBoolean(Request["nuevo"]);
+    editar = Convert.ToBoolean(Request["editar"]);
+    var resource = 0;
+    var texto_notificacion = "";
+    var titulo_notificacion = "";
+    var id = 0;
+    var publicado = 0;
+    var fecha_actual = DateTime.Now.ToString("yyyy-MM-dd");
+
+
+    if (nuevo == true)    {
+        if (IsPost)        {
+            // hacer insert
+            texto_notificacion = Request.Form["texto_notificacion"];
+            titulo_notificacion = Request.Form["titulo_notificacion"];
+            id = Convert.ToInt32(Request.Form["id"]);
+            if (Request.Form["publicado"] == null) { publicado = 1; } else { publicado = Convert.ToInt32(Request.Form["publicado"]); }
+            var sqlTexto = "SELECT id_notificaciones FROM TNotificaciones WHERE titulo_notificacion=@0 and fecha_notificacion=@1";
+            var C00 = Conn.QuerySingle(sqlTexto, titulo_notificacion, fecha_actual);
+            if (C00 != null)            {
+                Response.Redirect("adm_notificaciones?ex=false");
+            }
+            else            {
+                var insertCommand = "INSERT TNotificaciones(titulo_notificacion,texto_notificacion,id_UserProfile,fecha_notificacion,publicado) Values(@0,@1,@2,@3,@4)";
+                Conn.Execute(insertCommand, titulo_notificacion, texto_notificacion, WebSecurity.CurrentUserId, fecha_actual, publicado);
+                Response.Redirect("adm_notificaciones?ex=true");
+            }
+
+        }// post
+    }// nuevo
+
+
+
+    if (editar == true)    {
+        id = Convert.ToInt32(Request["id"]);
+        var sqlText0 = "SELECT titulo_notificacion,texto_notificacion,publicado FROM TNotificaciones WHERE id_notificaciones=@0";
+        var C0 = Conn.QuerySingle(sqlText0, id);
+        if (C0 != null)        {
+            titulo_notificacion = C0.titulo_notificacion;
+            texto_notificacion = C0.texto_notificacion;
+            publicado = Convert.ToInt16(C0.publicado);
+        }
+        if (IsPost)        {
+            texto_notificacion = Request.Form["texto_notificacion"];
+            titulo_notificacion = Request.Form["titulo_notificacion"];
+            id = Convert.ToInt32(Request.Form["id"]);
+            if (Request.Form["publicado"] == null) { publicado = 1; } else { publicado = Convert.ToInt32(Request.Form["publicado"]); }
+            var updateCommand2 = "UPDATE TNotificaciones SET titulo_notificacion=@0,texto_notificacion=@1,id_UserProfile=@2,fecha_notificacion=@3,publicado=@4 WHERE id_notificaciones=@5";
+            Conn.Execute(updateCommand2, titulo_notificacion, texto_notificacion, WebSecurity.CurrentUserId, fecha_actual, publicado, id);
+            Response.Redirect("Adm_notificaciones?ex=true");
+        }
+    } // editar
+
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> @if (editar == true)    {@Html.Raw("Editar Notificación")}   else  {@Html.Raw("Nueva Notificación")}   </h1>
+        <ol class="breadcrumb">
+            <li><a href="default?resource=5003" title="Dashboard"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+            <li><a href="Adm_notificaciones" title="Administración de notificaciones"><i class="fa fa-fw fa-newspaper-o"></i>Administración de notificaciones</a></li>
+            <li class="active">  @if (editar == true)   {@Html.Raw("Editar Notificación")} else  {@Html.Raw("Nueva Notificación")} </li>
+        </ol>
+    </section>
+
+    <section class="content">
+
+        @{ if (mensaje_error != "")            {
+                <div class="span9" id="content">
+                    <div class="alert alert-error alert-block">
+                        <a class="close" data-dismiss="alert" href="#">&times;</a>
+                        <h4 class="alert-heading">Error!</h4>
+                        @mensaje_error
+                    </div>
+                </div>
+            }}
+
+        @{ if (mensaje_exito != "")            {
+                <div class="span9" id="content">
+                    <div class="alert alert-success alert-block">
+                        <a class="close" data-dismiss="alert" href="#">&times;</a>
+                        <h4 class="alert-heading">Éxito!</h4>
+                        @mensaje_exito
+                    </div>
+                </div>
+            }}
+
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box box-default">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"> @if (editar == true)   {@Html.Raw("Editar Notificación")}   else     {@Html.Raw("Nueva Notificación")}</h3>
+                        <div class="box-tools pull-right">
+                            <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                            <button class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <form method="post" name="form1">
+                            <div class="col-xs-11">
+                                <div class="row">
+                                    <input type="hidden" name="id" value="@id">
+                                    <div class="form-group">
+                                        <label for="username"><b>*Título de la notificación: <small>(50 caracteres)</small></b></label>
+                                        @if (editar == true)                                        {
+                                            <input type="text" style="height:33px" value="@titulo_notificacion" name="titulo_notificacion" id="titulo_notificacion" maxlength="50" class="form-control textbox" class="form-control" placeholder="Título de la notificación" required />
+                                        }
+                                        else                                        {
+                                            <input type="text" style="height:33px" name="titulo_notificacion" id="titulo_notificacion" maxlength="50" class="form-control textbox" class="form-control" placeholder="Título de la notificación" required />
+                                        }
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="radio" required name="publicado" value="1" id="Tipo_0" @if (editar == true) { if (publicado == 1) { @Html.Raw("checked")  ; } } else { @Html.Raw("checked")  ; }>
+                                            Publicado
+                                        </label><br>
+                                        <label>
+                                            <input type="radio" required name="publicado" value="0" id="Tipo_1" @if (editar == true) { if (publicado == 0) { @Html.Raw("checked")  ; } }>
+                                            No publicado
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <strong>Notificación: <small>(500 caracteres)</small></strong><br>
+                                        @if (editar == true)                                        {
+                                            <textarea name="texto_notificacion" class="form-control  textbox" rows="9" maxlength="500" id="experiencia_prof" title="Texto Notificación">@texto_notificacion</textarea>
+                                        }
+                                        else                                        {
+                                            <textarea name="texto_notificacion" class="form-control  textbox" rows="9" maxlength="500" id="experiencia_prof" title="Texto Notificación"></textarea>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="box-footer">
+                                    <div class="form-actions">
+                                        <div class="row">
+                                            <div class="col-xs-10">
+                                            </div>
+                                            <div class="col-xs-1">
+                                                <input type="button" id="Cancelar" class="btn pull-right" value="Cancelar" onClick="location.href = 'Adm_notificaciones?resource=@Request.QueryString["resource"]' ">
+                                            </div>
+                                            <div class="col-xs-1">
+                                                <button type="submit" class="btn bg-purple pull-right">Aceptar</button>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}

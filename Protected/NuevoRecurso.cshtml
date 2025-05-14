@@ -1,0 +1,166 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Nuevo recurso asegurado";
+    var Conn = Database.Open("Dashboard");
+    var errorMessage = "";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false){ Response.Redirect("AdminError"); }
+
+    if (IsPost)  {
+      
+        var espanol = Request.Form["espanol"];
+        var recurso = Request.Form["recurso"];
+        var Publicable = Request.Form["Publicable"];
+        var Menu= Request.Form["Menu"];
+        // checar si ya existe el recurso
+        // se le manda numbre de la tabla, nombre del campo para hacer funcion
+        var sqlText0 = "SELECT * FROM webpages_Recursos WHERE Ruta=@0";
+        var C0 = Conn.QuerySingle(sqlText0, recurso);
+        if (C0 == null)        {
+            if (Publicable == "1") {//se guarda menu
+                var insertCommand = "INSERT INTO webpages_Recursos(Descripcion, Ruta,Publicable,Id_webpages_NombreMenu) Values(@0,@1,@2,@3)";
+                Conn.Execute(insertCommand, espanol, recurso, Publicable, Menu);
+            }
+            else {//No se guarda menu
+                var insertCommand = "INSERT INTO webpages_Recursos(Descripcion, Ruta,Publicable) Values(@0,@1,@2)";
+                Conn.Execute(insertCommand, espanol, recurso, Publicable);
+            }
+
+            Response.Redirect("RecursosAsegurados?exito=true");
+        }
+        else        {
+            errorMessage = "No se puede agrega dos veces el mismo recurso.";
+        }
+    }// del post   
+}
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Nuevo recurso
+            <small>Adicionar un recurso asegurado</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i> Inicio</a></li>
+            <li><a href="RecursosAsegurados" title="RecursosAsegurados"><i class="fa fa-lock"></i> Menú recursos asegurados</a></li>
+            <li><a href="#" title="Nuevo recurso asegurado"><i class="fa fa-lock"></i> Nuevo recurso asegurado</a></li>
+
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+        @if (errorMessage != "")        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title"><i class="fa fa-lock"></i> Catálogo de recursos asegurados</h3>
+                    </div>
+                    <div class="box-body">
+                        <form method="post" name="form1">
+                       
+                             <fieldset>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="box-body">
+                                            <div class="form-group">
+                                                <label class="control-label" for="typeahead">* Nombre del recurso:</label>
+                                                <div class="controls">
+                                                    <input class="form-control textbox" style="height:33px" type="text" maxlength="50" id="espanol" name="espanol" required>
+                                                </div>
+
+                                                <label class="control-label" for="typeahead">*¿Publicable? </label>
+                                                <div class="controls">
+                                           
+                                                </div>
+
+                                                <div class="controls">
+                                                    <label>
+                                                        <input type="radio" onchange="from(document.form1.Publicable.value, 'midiv', 'AjaxSeleccionarMenu.cshtml')" required name="Publicable" value="1" id="Publicable_0"> Sí
+                                                    </label>
+                                                    &nbsp;
+                                                     <label>
+                                                        <input type="radio" required name="Publicable" value="0" id="Publicable_1">  No
+                                                    </label>
+                                                    <br>
+                                                </div>
+
+
+                                                <div id="midiv"></div>
+
+                                         
+
+
+                                                <label class="control-label" for="typeahead">* Ruta recurso: </label>
+                                                <div class="controls">
+                                                    <input class="form-control textbox" style="height:33px" type="text" maxlength="90" id="recurso" name="recurso" required>
+                                                </div>
+
+
+
+                                            </div>
+                                        </div>
+
+
+                                        <p></p>
+                                        <div class="form-actions">
+                                            <div class="text-right">
+                                                <input type="button" id="Cancelar" class="btn" value="Cancelar" onClick="location.href = 'RecursosAsegurados' ">
+                                                <button type="submit" class="btn btn-primary">Aceptar</button>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+
+
+                              
+
+                            </fieldset>
+                        </form>
+
+
+
+
+
+
+
+
+                    </div>
+
+                    <div class="box-footer">
+                        <small>Si su registro no es publicable (salir en el menu de la izquierda) haga caso omiso a la opción mení donde publicar. Si es publcable, debera de especificar en que menú estara esta opción. Recuerde que debera de dar permiso de acceso al recurso publicable.</small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+    </section>
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+
+}
+
+
+
+

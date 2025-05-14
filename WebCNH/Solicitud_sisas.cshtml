@@ -1,0 +1,289 @@
+﻿@using System;
+@using System.IO;
+@using System.Net;
+@using System.Text;
+
+@{
+    string mandado = "", cum = "", FormaMandada = "";
+    string Mensaje = "";
+    var Conn = Database.Open("Dashboard");
+
+    var ConnSisas = Database.Open("Sisas");
+
+    cum = HttpUtility.HtmlEncode(Request.Form["cum"]);
+    FormaMandada = Request.Form["FormaMandada"]; // cuando se mando la forma 2
+    mandado = Request.Form["mandado"];
+    //para dar el exito
+    string resu, VuelveIntentar="";
+    resu = Request.QueryString["E"];
+
+    //Conectar al Regnal
+    string nombre = "", paterno = "", materno = "", provincia = "", resumen = "", fotofilename = "", NotasCaso = "", TextoSolicitud = "", GrupoCargado = "", nombre_provincia = "", MsgError = "",ErrorRegnal="";
+    int iddatos_personales = 0, idgrupo = 0, grupo_num = 0, provincia_grupo = 0;
+    bool baja = false, estatus = false;
+
+
+
+    if (IsPost && Request.Form["mandado"]=="1")    {
+
+        //Validate Google recaptcha here
+        var response = Request["g-recaptcha-response"];
+        string secretKey = "6Lf39PYUAAAAAAGgaT8rW84MVz6qEdgTWTlLrKAA";
+        var client = new WebClient();
+        var result = client.DownloadString(string.Format("https://www.google.com/recaptcha/api/siteverify?secret={0}&response={1}", secretKey, response));
+        string substring = result.Substring(14, 5);
+
+        //cuando es falso el recaptcha no la verifico
+        if (substring.Trim() == "false")       {
+            Mensaje = "Verifique esta casilla para proseguir.";
+            VuelveIntentar = "1";
+        }
+        else   { // si verifico la casilla.
+
+            try   {
+
+
+
+                //conectar con el sisas 
+
+                var sqlText0 = "select * from VistaMiembroBusqueda where cum='@0' and activo=1";
+
+               // @Html.Raw(sqlText0+ cum);
+                var C0 = ConnSisas.QuerySingle(sqlText0, cum.Trim()); // ojo para que sea solo uno es query single
+                if (C0 != null) { estatus = C0.vigente; }
+                else { MsgError = "El CUM no se encuentra, revise que exista en el SISAS"; }
+                // aqui entra cuando la persona si esta activa en asmac
+                if (estatus == false) { Response.Redirect("solicitud2?cum=" + cum + "&m=1"); }
+                // aqui entra cuando la persona no esta activa en asmac
+                else { if (estatus == true) { MsgError = "Su registro ante la ASMAC no esta activo, Revise en SISAS"; } }
+
+            }
+            catch (Exception e)           {
+                ErrorRegnal = "EL SISAS SE ENCUENTRA CAIDO EN ESTOS MOMENTOS POR LO QUE SE SOLICITUD NO PUEDE PROCEDER, INTENTE MAS TARDE.";
+            }
+            finally    {
+         ConnSisas.Close();
+           ConnSisas.Dispose();
+            }
+
+        }
+
+    }//ispost
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Nuevo recurso de revisión ante la CNH</title>
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+    <!-- input redondeado -->
+    <link href="css/rounded.css" rel="stylesheet">
+    <link href="css/botones.css" rel="stylesheet">
+    <link href="css/typefile.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+</head>
+<body id="page-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="default#page-top">  CORTE NACIONAL DE HONOR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#portfolio">Integrantes </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <section class="page-section bg-primary" id="about">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0"><br />Interponer un recurso de revisión</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4"><strong>Instrucciones: </strong>
+Para poder interponer una revisión deberá ser miembro activo de la ASMAC. Para iniciar el trámite deberá de proporcionar su CUM y su email.
+Usted podrá describir de manera general su caso y subir hasta 3 archivos en formato PDF (5MB máximo) donde podrá agregar documentos que ayuden su caso, si requiere subir más documentos, le pedimos que ,<strong>los suba en un drive </strong> y comparta la liga del mismo en el cuerpo de su mensaje, asegurandose que el acceso a esa carpeta sea público (La CNH NO compartira esta liga). Una vez hecho esto, recibirá un número de folio, el cual <strong>debe guardar </strong>para poder dar seguimiento a su trámite. Los acuerdos de la CNH serán comunicados por los medios oficiales directamente a las Provincias. Solo podrá ingresar un recurso de revisión por caso. Al enviar su información, usted acepta el <a href="https://scouts.org.mx/aviso-de-privacidad/" target="_blank">Aviso de Provacidad</a> de la ASMAC.
+
+
+                     </p>
+                    <a class="btn btn-light btn-xl js-scroll-trigger" href="#services">Iniciar</a>
+                </div>
+            </div>
+        </div>
+    </section>
+   
+    <section class="page-section" id="services">
+         <div class="container my-1">
+            <center><img src="img/cnh.svg" class="img-responsive" width="350" height="200" /></center>
+          
+            <h2 class="text-center mt-2">Nueva interposición de recursos</h2>
+            <hr class="divider my-3">
+
+             @if (MsgError != "")   {
+                <div class="alert alert-warning">
+                    <center> <strong>Importante: </strong> @MsgError</center>
+                </div>
+                  }
+
+
+             @if (ErrorRegnal != "")
+             {
+                 <div class="alert alert-warning">
+                     <center> <strong>Error: </strong> @ErrorRegnal</center>
+                 </div>
+             }
+
+            @if (!IsPost && resu!="1")    {
+            <form name="forma1" id="forma1" method="post" action="solicitud">
+                <input type="hidden" name="mandado" value="1" />
+
+                <div class="row">
+                    <p class="col-lg-12 col-md-12 text-center">
+                    <p class="text-muted mb-1 text-center">  <small>   Ingrese su CUM y verifique la casilla para continuar.  </small>      </p>
+                </div><br />
+              
+                        <div class="row">
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-6">
+                                    *CUM:
+                                    <input type="text" autofocus maxlength="10" name="CUM" max="10" alt="CUM" id="ip1" required title="CUM" placeholder="CUM" />
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-6">
+                                    <div class="g-recaptcha" data-sitekey="6Lf39PYUAAAAAEn8_VkQfYESgoqJuw4sShIj_dXd"></div>
+                                    @if (Mensaje != "")   { @Mensaje;    }
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-6">
+                                    <input type="submit" onclick="Mandar1();" class="btn btn-primary  js-scroll-trigger" />
+                                </div>
+                            </div>
+                        </div>
+            </form>
+            }
+        
+             @if (VuelveIntentar == "1")             {
+                 // aqui entra para reintentar con el recaptcha
+                <form name="forma1" id="forma1" method="post" action="solicitud">
+                    <input type="hidden" name="mandado" value="1" />
+
+                    <div class="row">
+                        <p class="col-lg-12 col-md-12 text-center">
+                        <p class="text-muted mb-1 text-center">  <small>   Ingrese su CUM para revisión de la vicencia de su registro.  </small>      </p>
+                    </div><br />
+
+                    <div class="row">
+                        <div class="col-lg-4 col-md-4 text-center">
+                            <div class="mt-6">
+                                *CUM:
+                                <input type="text" autofocus maxlength="10" name="CUM" max="10" alt="CUM" id="ip1" required title="CUM" placeholder="CUM" />
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-4 text-center">
+                            <div class="mt-6">
+                                <div class="g-recaptcha" data-sitekey="6Lf39PYUAAAAAEn8_VkQfYESgoqJuw4sShIj_dXd"></div>
+                              <font color="red"> <small> @if (Mensaje != "")   { @Mensaje;    }</small></font>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-4 text-center">
+                            <div class="mt-6">
+                                <input type="submit" onclick="Mandar1();" class="btn btn-primary  js-scroll-trigger" />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+
+             }
+
+             <div class="row">
+                 <p class="col-lg-12 col-md-12 text-justify"><br /><br /><small>Solo los miembros con registro vigente pueden interponer una solicitud ante la CNH. </small></p>
+             </div>
+
+        </div>
+    </section>
+
+
+
+   
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Corte Nacional de Honor <Br />Asociación de Scouts de México A.C. <br />Copyright &copy; CNH. Creata 2020</div>
+        </div>
+    </footer>
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+</body>
+</html>
+
+<script>
+    function Mandar(){
+        document.forms["forma1"].submit();
+    }
+
+    function Mandar2() {
+        document.forms["forma2"].submit();
+    }
+    
+</script>
+
+
+       @{
+
+           Conn.Close();
+           Conn.Dispose();
+           ConnSisas.Close();
+           ConnSisas.Dispose();
+       }

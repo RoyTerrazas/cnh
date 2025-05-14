@@ -1,0 +1,146 @@
+﻿
+@using System.Configuration;
+@using System;
+@using System.IO;
+@using System.Net;
+@using System.Text;
+@using System.Text.RegularExpressions;
+
+@{
+    string cum = "CHS9680178";
+    string paterno = "";
+    string materno = "";
+    string nombre = "";
+    string telefono = "";
+    string email = "";
+    string nombre_provincia = "";
+    string localidad = "";
+    int numeroGrupo = 0;
+    bool EstaSustendido = true, EstaVigente = false;
+    string fechaVigencia = "", Seccion = "";
+    int idPersona = 0, idDinamico = 0;
+
+    var ConnSisas = Database.Open("Sisas");
+
+
+    // var sqlText0 = "select * from [dbo].[VistaMiembroBusqueda] where cum = '" + cum + "' and activo = 1";
+    //  var C0 = ConnSisas.QuerySingle(sqlText0, cum); // ojo para que sea solo uno es query single
+    // if (C0 != null)
+    // {
+    // estatus = C0.vigente;
+    // nombre = C0.nombre;
+    //  paterno= C0.PrimerApellido;
+    //  materno = C0.SegundoApellido;
+    // idgrupo = Convert.ToString(C0.idgrupo);
+    // idmiembro = Convert.ToString(C0.idmiembro);
+    // provincia_grupo = C0.idprovincia;
+    //  nombre_provincia = C0.provincia;
+    //  email = C0.email;
+    //  localidad = C0.Localidad;
+    //  numeroGrupo = C0.NumeroGrupo;
+    // telefono = C0.telefono;
+    //   EstaSustendido = C0.EstaSuspendido;
+    //  EstaVigente = C0.EstaVigente;
+    //  fechaVigencia = Convert.ToString(C0.VigenciaMiembro);
+    // idPersona = C0.u.IdPersona;
+    // idDinamico = C0.IdDinamico;
+    //  Seccion = C0.Seccion;
+
+    // }
+
+    /*
+    @Html.Raw("nombre: " + nombre);
+    @Html.Raw("</br>");
+    @Html.Raw(" nombre provincia: " + nombre_provincia);
+    @Html.Raw("</br>");
+    @Html.Raw("email: " + email);
+    @Html.Raw("</br>");
+    @Html.Raw("localidad: " + localidad);
+    @Html.Raw("</br>");
+    @Html.Raw("num grupo: " + numeroGrupo);
+    @Html.Raw("</br>");
+    @Html.Raw("esta suspendido? " + EstaSustendido);
+    @Html.Raw("</br>");
+    @Html.Raw("esta vigente? " + EstaVigente);
+    @Html.Raw("</br>");
+    @Html.Raw("fecha vigencia: " + fechaVigencia);
+    @Html.Raw("</br>");
+    @Html.Raw("seccion: " + Seccion);
+    @Html.Raw("</br>");
+    @Html.Raw("telefono: " + telefono);
+
+    */
+
+
+
+    Regex emailRegex = new Regex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+
+   // bool solonumeros= Regex.IsMatch(caracteres, "^[0-9]+$"); //validar que solo sean numeros
+
+  //  if (emailRegex.IsMatch(userEmail))
+   // {
+        // Email is valid 
+  //  }
+   // else
+   // {
+        // Email is invalid 
+  //  }
+
+
+
+    string BNombre = "roy alonso", BPrimerApellido = "terrazas", BSegundoApellido = "marin";
+
+    var sqlText03 = "select * from VistaReporteMiembro where nombre like '%" + BNombre + "%'";
+    foreach (var row in ConnSisas.Query(sqlText03))
+    {
+        //curp, nombre, primerapellido, segundo apellido, cum
+        @Html.Raw("</br>");
+        @Html.Raw("nombre: " + row.nombre);
+        @Html.Raw("</br>");
+        @Html.Raw("paterno: " + row.primerapellido);
+        @Html.Raw("</br>");
+        @Html.Raw("materno: " + row.segundoapellido);
+        @Html.Raw("</br>");
+        @Html.Raw("cum: " + row.cum);
+        @Html.Raw("</br>");
+        @Html.Raw("activo: " + row.ActivoString);
+
+        var sqlText02 = "select * from VistaReporteador where cum = @0";
+        var C02 = ConnSisas.QuerySingle(sqlText02, row.cum); // ojo para que sea solo uno es query single
+        if (C02 != null)
+        {
+            @Html.Raw("</br>");
+            @Html.Raw("telefono: " + C02.telefonomiembro);
+            @Html.Raw("</br>");
+            @Html.Raw("email: " + C02.email);
+            @Html.Raw("</br>");
+            @Html.Raw("cargo: " + C02.cargos);
+            @Html.Raw("</br>");
+            @Html.Raw("num grupo: " + C02.numerogrupo);
+            @Html.Raw("</br>");
+            @Html.Raw("provincia: " + C02.provincia);
+
+            //idprovincia, provincia, idlocalidad, localidad
+            //nombre, idgrupo, numerogrupo, idseccion, seccion
+            //idcargos, cargos, descripcionGenero, ocupacion,
+            //email, telefonomiembro, fechanacimiento, edad, domicilio, cp,colonia, municipio, miembrodesde
+
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ConnSisas.Close();
+    ConnSisas.Dispose();
+}

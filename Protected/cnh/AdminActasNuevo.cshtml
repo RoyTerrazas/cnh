@@ -1,0 +1,362 @@
+﻿@using System.IO;
+@using ZXing;
+@using ZXing.Common;
+@using ZXing.QrCode;
+@using System.Collections.Generic;
+@using System.Drawing;
+@using ZXing.QrCode.Internal;
+@using ZXing.Rendering;
+
+@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout_wysihtml.cshtml";
+    Page.Title = "Nueva / Modificar Acta";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+    string id = Request.Form["id"];
+    string editar = Request.Form["editar"];
+    string nuevo = Request.Form["nuevo"];
+    string TituloAcuerdo = "", NumAcuerdo = "";
+    string enviar = Request.Form["enviar"];
+    string fileSavePath = "";
+    string newFileName = "", MsgError = "", IdFirmaCargado = "";
+    string textoOficio = "", tipo = "", tipoCargado = "";
+    DateTime localDate = DateTime.Now;
+    // string IdFirma = "";
+    string idCaso = "";
+    string RutaArchivoCarg = "";
+
+
+
+
+
+    // LA MAGIA PARA QUE NO VALIDE LA VARIABLE ES: Request.Unvalidated.Form()
+
+    TituloAcuerdo = Request.Form["TituloAcuerdo"];
+    NumAcuerdo = Request.Form["NumAcuerdo"];
+    textoOficio = HttpUtility.HtmlDecode(Request.Unvalidated.Form["textoOficio"]);
+    // textoOficio = Request.Form["textoOficio"];
+
+    idCaso = Request.Form["idCaso"];
+
+    var uploadedFile = Request.Files["archivo1"];
+
+    if (id == "") { nuevo = "1"; } else { if (id == null) { nuevo = "1"; } else { nuevo = "0"; } }
+    string TituloAcuerdoCarg = "", NumAcuerdoCarg = "", Numeroaleatorio = "";
+
+    //-----------------------CARGADO DE DATOS------------------------------------------------
+    if (editar == "1" && id != "" && IsPost)
+    {
+
+        // mostrar datos a editar
+        var sqlText01e = "SELECT * FROM  TAcuerdosCNH WHERE Id_Acuerdo=@0 ";
+        var C0E = Conn.QuerySingle(sqlText01e, id);
+        if (C0E != null)
+        {
+            TituloAcuerdoCarg = C0E.TituloAcuerdo.ToUpper();
+            NumAcuerdoCarg = C0E.NumAcuerdo.ToUpper();
+            idCaso = Convert.ToString(C0E.IdCasoAsignado);
+            RutaArchivoCarg = C0E.RutaArchivo;
+            textoOficio = C0E.textoOficio;
+            Numeroaleatorio = C0E.NumeroAleatorio;
+        }
+
+        //-------------generar qr cada vez que se edita
+        //https://stackoverflow.com/questions/75237693/create-qrcode-with-c-sharp-and-save-it-as-an-image
+        string qrcodeText = "cnhscouts.org.mx/webcnh/revisarvalidezacuerdo?idunico=" + Numeroaleatorio;
+        string RutaArchivoCarg2 = "TestQrCode.png";
+        var filename = Server.MapPath("~/protected/AcuerdosArch/qr/" + RutaArchivoCarg2);
+        string ext = Path.GetExtension(filename);
+        if (ext == ".bmp" || ext == ".dib" || ext == ".rle")        {
+            QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Bmp);        }
+        else if (ext == ".jpg" || ext == ".jpeg" || ext == ".jfif" || ext == ".jpe")        {
+            QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Jpeg);        }
+        else if (ext == ".png")        {
+            QrCodeGenerator.SaveQrCode(qrcodeText, filename, System.Drawing.Imaging.ImageFormat.Png);        }
+        //-------------generar qr cada vez que se edita
+    }
+
+
+    if (nuevo == "1")
+    {
+        //Generar la clave de segimiento
+        string cadenaAntes = "CNH/";
+        string NumeroSecuencial = "1";
+        DateTime Hoy = DateTime.Now;
+        int anno = Hoy.Year;
+        string Numeroacuerdo = "";
+        string NumeroAcu = "";
+        int contador = 0;
+
+
+
+
+
+        //obtener numero secuencial, buscarlo y sumarlo.
+        var sqlText01e = "select NumAcuerdo,fecha from [dbo].[TAcuerdosCNH] where year(fecha)='" + anno + "'order by id_acuerdo desc";
+        var C0E = Conn.QuerySingle(sqlText01e, id);
+        if (C0E != null)
+        {
+            Numeroacuerdo = C0E.numAcuerdo;
+            NumeroAcu = Numeroacuerdo.Substring(4, 3);
+            decimal myDec;
+            var Result = decimal.TryParse(NumeroAcu, out myDec);
+            contador = Convert.ToInt32(myDec) + 1;
+            NumeroSecuencial = Convert.ToString(contador);
+        }
+        else { NumeroSecuencial = "001"; }
+
+        if (NumeroSecuencial.Length == 1) { NumeroSecuencial = "00" + NumeroSecuencial; }
+        else { if (NumeroSecuencial.Length == 2) { NumeroSecuencial = "0" + NumeroSecuencial; } }
+
+        NumAcuerdoCarg = cadenaAntes + "" + NumeroSecuencial + "/" + anno;
+    }
+
+    //-------------------------EDITAR----------------------------------------------------------------------
+
+    //@Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+
+    if (Request.Form["editado"] == "1" && IsPost)
+    {
+
+
+
+
+
+
+        if (Path.GetFileName(uploadedFile.FileName) != "")
+        {
+
+
+            //borrar el archivo anterior
+            var sqlText01en = "SELECT * FROM  TAcuerdosCNH WHERE Id_Acuerdo=@0 ";
+            var C0En = Conn.QuerySingle(sqlText01en, id);
+            if (C0En != null) { RutaArchivoCarg = C0En.RutaArchivo; }
+
+            if (RutaArchivoCarg != null)
+            {
+                if (RutaArchivoCarg != "")
+                {
+                    var fullPath3 = Server.MapPath("~/protected/AcuerdosArch/" + RutaArchivoCarg.Trim());
+                    File.Delete(fullPath3);
+                }
+            }
+
+
+            //subir el archivo nuevo
+            newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(uploadedFile.FileName);
+            fileSavePath = Server.MapPath("~/protected/AcuerdosArch/" + newFileName);
+            uploadedFile.SaveAs(fileSavePath);
+
+            //actualizar la bd
+            string updateCommand1 = "UPDATE TAcuerdosCNH SET RutaArchivo=@0,TituloAcuerdo=@1,NumAcuerdo=@2,IdCasoAsignado=@3,IdQuienSube=@4,textoOficio=@5 WHERE Id_Acuerdo=@6";
+            Conn.Execute(updateCommand1, newFileName, TituloAcuerdo, NumAcuerdo, idCaso, WebSecurity.CurrentUserId, textoOficio, id);
+        }
+        else
+        {
+
+            string updateCommand1 = "UPDATE TAcuerdosCNH SET TituloAcuerdo=@0,NumAcuerdo=@1,IdCasoAsignado=@2,IdQuienSube=@3,textoOficio=@4 WHERE Id_Acuerdo=@5";
+            Conn.Execute(updateCommand1, TituloAcuerdo, NumAcuerdo, idCaso, WebSecurity.CurrentUserId, textoOficio, id);
+
+
+        }
+
+        Response.Redirect("AdminActas?E=1");
+    }
+    //--------------------------NUEVO ACUERDO------------------------------------------------------------------
+    if (nuevo == "1" && IsPost && enviar == "1")
+    {//nuevo acuerdo
+        var sqlText01 = "SELECT * FROM  TAcuerdosCNH WHERE TituloAcuerdo=@0 and NumAcuerdo=@1 ";
+        var C01 = Conn.QuerySingle(sqlText01, TituloAcuerdo, NumAcuerdo);
+        if (C01 == null)
+        {
+
+            string NumeroAleatorio = NumerosAleatorios.CreatePassword(8).ToUpper();
+
+        if (uploadedFile.FileName == null) { @Html.Raw("hola");}
+
+            // if (Path.GetFileName(uploadedFile.FileName) != "" || Path.GetFileName(uploadedFile.FileName) != null)
+            if (Path.GetFileName(uploadedFile.FileName) != "")
+            {  //cuando se sube archivo
+                newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(uploadedFile.FileName);
+                fileSavePath = Server.MapPath("~/protected/AcuerdosArch/" + newFileName);
+                uploadedFile.SaveAs(fileSavePath);
+
+
+                var insertCommand = "INSERT INTO TAcuerdosCNH (Fecha,TituloAcuerdo,NumAcuerdo,RutaArchivo,IdCasoAsignado,textoOficio, NumeroAleatorio,IdQuienSube) Values(@0,@1,@2,@3,@4,@5,@6,@7)";
+                Conn.Execute(insertCommand, localDate, TituloAcuerdo, NumAcuerdo, newFileName, idCaso, textoOficio, NumeroAleatorio, WebSecurity.CurrentUserId);
+                Response.Redirect("AdminActas?E=1");
+            }
+            else
+            { //cuando no se sube archivo
+                var insertCommand = "INSERT INTO TAcuerdosCNH (Fecha,TituloAcuerdo,NumAcuerdo,IdCasoAsignado,textoOficio, NumeroAleatorio,IdQuienSube) Values(@0,@1,@2,@3,@4,@5,@6)";
+                Conn.Execute(insertCommand, localDate, TituloAcuerdo, NumAcuerdo, idCaso, textoOficio, NumeroAleatorio, WebSecurity.CurrentUserId);
+                Response.Redirect("AdminActas?E=1");
+
+            }
+        }
+        else { MsgError = "NO SE PUEDEN AGREGAR DOS ACUERDOS CON EL MISMO NÚMERO DE ACUERDO Y TITULO DEL ACUERDO."; }
+    }
+    //--------------------------------------------------------------------------------------------
+}
+
+
+
+
+<form name="forma" id="forma" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="enviar" value="1" />
+    <input type="hidden" name="id" value="@id" />
+    <input type="hidden" name="editado" value="@editar" />
+
+
+    @if (id == "")
+    {<input type="hidden" name="nuevo" value="1" />}
+    else
+    { <input type="hidden" name="nuevo" value="0" />}
+
+    <div class="content-wrapper">
+        <section class="content-header">
+            <h1> Nuevo acuerdo  / Edición Acuerdo <small>Dar de alta o modificar acuerdo de la CNH.</small> </h1>
+            <ol class="breadcrumb">
+                <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="~/Protected/cnh/AdminActas" title="Administración de actas de la CNH">Adm. Acuerdos</a></li>
+                <li><a href="#" class="active" title="Nueva acta o Edición de la misma"> Nueva / Edición Acuerdos</a></li>
+            </ol>
+        </section>
+        <section class="content">
+            <div class="row">
+                <div class="col-md-12">
+                    @if (MsgError != "")
+                    {
+                        <div class="alert alert-warning alert-dismissible">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                            <h4><i class="icon fa fa-warning"></i> ¡Alerta!</h4>
+                            @MsgError
+                        </div>
+                    }
+                    <div class="box ">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Nueva / Edición Acuerdos</h3>
+                        </div>
+                        <div class="box-body">
+
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1">*Número de Acuerdo:</label>
+                                    <input type="text" class="form-control" id="NumAcuerdo" readonly value="@NumAcuerdoCarg" name="NumAcuerdo" required placeholder="NÚMERO ACUERDO" max="12" maxlength="12">
+                                </div>
+                            </div>
+
+
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="exampleInputPassword1">*Título acuerdo:</label>
+                                    <input type="text" class="form-control" id="TituloAcuerdo" value="@TituloAcuerdoCarg.Trim()" name="TituloAcuerdo" required placeholder="TÍTULO ACUERDO" max="30" maxlength="30">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="exampleInputPassword1">Caso en revisión:</label>
+                                    <div class="form-group">
+
+                                        @{ var selectQueryString = "select * from [dbo].[VSolicitudTramite] where (estatus = 1 or estatus = 3 or estatus = 7) and year(fecha)= year(GETDATE()) order by estatus"; }
+                                        <select id="idCaso" name="idCaso" class="form-control select">
+                                            <option value="">Seleccione</option>
+                                            @foreach (var row in Conn.Query(selectQueryString))
+                                            {
+                                                <option value="@row.Id" @if (Convert.ToString(row.Id) == idCaso) { @Html.Raw("selected") ; }> (Folio: @row.id)  @row.resumen.ToUpper() Estado:@row.descrip </option>
+                                            }
+                                        </select>
+                                        <font color="red"><small> @Html.ValidationMessage("provincia")</small></font>
+                                    </div>
+                                </div>
+                            </div>
+
+                    
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="exampleInputPassword1">Archivo:</label>
+                                        <div class="form-group">
+
+                                            Nombre archivo: @RutaArchivoCarg
+                                            <input type="file" maxlength="150" id="archivo1" name="archivo1" accept="application/pdf">
+                                            <p class="help-block">El formato del archivo deve ser PDF.</p>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                   
+
+
+
+
+
+                            <div class="col-md-7">
+                                <div class="box-body pad">
+                                    <label for="exampleInputFile">Comentarios:</label>
+                                    <textarea id="editor" class="textarea" rows="5" placeholder="Escribir el cuerpo del texto del oficio aquí ..." maxlength="4000" name="textoOficio" style="width: 100%; height: 200px; font-size: 14px; line-height: 18px; border: 1px solid #dddddd; padding: 10px;">@textoOficio</textarea>
+                                </div>
+                            </div>
+
+                            @if (editar == "1")
+                            {
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <center> <img src="~/Protected/AcuerdosArch/qr/TestQrCode.png" /></center><br />
+                                        <center> <small>@Numeroaleatorio</small></center>
+                                    </div>
+                                </div>
+                            }
+
+
+
+
+
+                        </div>
+                        <div class="box-footer">
+                            <div class="col-md-9"></div>
+                            <div class="col-md-1"><input type="button" id="Cancelar" class="btn pull-right" value="Cancelar" onClick="location.href = 'AdminActas' "></div>
+                            <div class="col-md-1">&nbsp;</div>
+                            <div class="col-md-1"><button type="button" onclick="Enviar()" class="btn pull-right">Enviar</button></div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+    function Enviar() { document.forma.submit(); }
+
+    function Editar(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'AdminActasNuevo');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'Editar');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', 1);
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>

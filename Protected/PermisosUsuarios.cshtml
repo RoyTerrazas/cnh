@@ -1,0 +1,179 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Permisos a Usuarios";
+    string errorMessage = "";
+    var accesoUsuario = false;
+    var accesoGrupo = false;
+    var selectQueryString = "";
+    string RolId = "";
+    var Conn = Database.Open("Dashboard");
+
+    accesoGrupo = Functions.PermisosGrupos(1);
+    accesoUsuario = Functions.PermisosUsuarios(1);
+
+    // script de seguridad
+      string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+     if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)
+    { Response.Redirect("SinPermiso"); }
+
+
+
+    var sqlText01 = "SELECT * FROM webpages_UsersInRoles WHERE Userid=@0";
+    var C01 = Conn.QuerySingle(sqlText01, WebSecurity.CurrentUserId);
+    if (C01 != null)
+    {
+        RolId = Convert.ToString(C01.RoleId);
+    }
+}
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Permisos a Usuarios
+            <small>Asignación de privilegios de acceso a usuarios</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" title="Permisos a usuarios"><i class="fa  fa-unlock-alt"></i>Permisos a usuarios</a></li>
+
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+        @if (errorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-xs-12">
+
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title"><i class="fa  fa-user"></i> Permisos de acceso personales </h3>
+                    </div>
+                    <div class="box-body">
+                         <div class="table-responsive">
+                             <table id="PrimeroDescendente" class="table table-bordered table-striped">
+                                 <thead>
+                                     <tr>
+                                         <th>ID</th>
+                                         <th>Email</th>
+                                         <th>Nombre</th>
+                                         <th>Paterno</th>
+                                         <th>Materno</th>
+                                         <th>Tipo</th>
+                                         <th>Opciones</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     @{ 
+                                         if (RolId== "1")
+                                         { // el super admin los ve a todos
+                                             selectQueryString = "SELECT * FROM VUsuarioDatosRoles";
+                                         }
+                                         else
+                                         { // para evitar que vean a los superadministardores
+                                             selectQueryString = "SELECT * FROM VUsuarioDatosRoles where RoleName != 'SAdmin' ORDER BY userid, paterno";
+                                         }
+                                     }
+
+
+
+                                     @foreach (var row in Conn.Query(selectQueryString))
+                                     {
+                                         <tr>
+                                             <td>@row.UserId  </td>
+                                             <td><a href="mailto:@row.Email" title="Email: @row.Nombre.Trim() @row.Paterno.Trim() "> @row.Email</a></td>
+                                             <td>@row.Nombre</td>
+                                             <td>@row.Paterno</td>
+                                             <td>@row.Materno</td>
+                                             <td>
+                                                 @{  var selectQueryString2 = "SELECT * FROM webpages_UsersInRoles where UserId=" + @row.UserId;
+                                                     var habilitado = false;
+                                                 }
+                                                 @foreach (var row2 in Conn.Query(selectQueryString2))
+                                                 {
+
+                                                     var sqlText1 = "SELECT * FROM webpages_Roles WHERE RoleId=@0";
+                                                     var C1 = Conn.QuerySingle(sqlText1, row2.RoleId);
+                                                     if (C1 != null)
+                                                     {
+                                                          if (C1.RoleName == "SAdmin")
+                                                                     {
+                                                             <i class="fa  fa-star"></i>  @Html.Raw(C1.RoleName + " ");
+                                                         }
+                                                         else
+                                                         {
+                                                             if (C1.RoleName == "Admin")
+                                                             {
+                                                                 <i class="fa fa-star-half-empty"></i>  @Html.Raw(C1.RoleName + " ");
+                                                             }
+                                                             else
+                                                             {
+                                                                 <i class="fa fa-user"></i>  @Html.Raw(C1.RoleName + " ");
+                                                             }
+                                                         }
+                                                     }
+
+                                                     // chk habilitacion de boton para sadmin
+                                                     if (RolId == "1" && Convert.ToString(C1.RoleName) == "SAdmin")
+                                                     {
+                                                         habilitado = true;
+                                                     }
+                                                     else
+                                                     {
+                                                         if (C1.RoleName == "SAdmin") { habilitado = false; } else { habilitado = true; }
+
+                                                     }
+                                                 }
+
+                                             </td>
+
+                                             <td>
+                                                 @{
+
+                                                     if (habilitado == true)
+                                                     {
+                                                         if (row.RoleName == "SAdmin" && RolId!= "1")
+                                                         {
+                                                        <button disabled class="btn bg-purple" title="Permisos a usuarios" onClick="location.href='PermisosUsr?Ud=@row.UserId'">Permisos a usuarios</button>
+                                                        }
+                                                         else
+                                                         {
+                                                        <button class="btn bg-purple" title="Permisos a usuarios" onClick="location.href='PermisosUsr?Ud=@row.UserId'">Permisos a usuarios</button>
+                                                        }
+                                                     }
+                                                     else
+                                                     {
+                                                         <a href="PermisosUsr?UserId=@row.UserId&resource=@Request.QueryString["Resource"]"><button disabled class="btn bg-purple" title="Permisos a usuarios">Permisos a usuarios</button></a>
+                                                     }
+                                                 }
+                                             </td>
+                                         </tr>
+                                                     }
+                                 </tbody>
+                             </table>
+                         </div>
+                    </div>
+                    <div class="box-footer">
+                        <strong>Nota: </strong> Los permisos individuales se complementan con los grupales, si el grupo al que pertenece el usuario ya tiene permiso de acceso a un recurso, no es necesario darle permiso en lo individual.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+@{ Conn.Close();
+   Conn.Dispose();
+}
+
+

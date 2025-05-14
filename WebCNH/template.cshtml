@@ -1,0 +1,257 @@
+﻿@{
+    string mandado, cum, folio;
+    mandado = Request.Form["mandado"];
+    var Conn = Database.Open("Dashboard");
+    bool ver = true, Ver = false;
+    int Id_tipoCaso = 0;
+    string mensaje = "", MsgError="";
+    string CumCargado = "", ProvinciaCargada = "", EstatusCargado = "", resumenCargado = "", NotasCargadas = "", ErrorMsg = "";
+
+    if (IsPost && mandado == "1")
+    {
+        //Validate Google recaptcha here
+        var response = Request["g-recaptcha-response"];
+        string secretKey = "6Lf39PYUAAAAAAGgaT8rW84MVz6qEdgTWTlLrKAA";
+        var client = new WebClient();
+        var result = client.DownloadString(string.Format("https://www.google.com/recaptcha/api/siteverify?secret={0}&response={1}", secretKey, response));
+        string substring = result.Substring(14, 5);
+        if (substring.Trim() == "fals") { mensaje = "Se requiere verifique la casilla para continuar."; }
+        else
+        {
+            cum = Request.Form["cum"];
+            folio = Request.Form["folio"];
+            var sqlText01 = "SELECT top 1 * FROM  VSolicitudTramite WHERE CUM=@0 and id=@1 order by fecha desc";
+            var C01 = Conn.QuerySingle(sqlText01, cum, folio);
+            if (C01 != null)
+            {
+                Ver = true;
+                if (cum != null) { CumCargado = cum.ToUpper(); } else { CumCargado = cum; }
+                if (C01.Nombre_provincia != null) { ProvinciaCargada = C01.Nombre_provincia.ToUpper(); } else { ProvinciaCargada = C01.Nombre_provincia; }
+                if (C01.Descrip != null) { EstatusCargado = C01.Descrip.ToUpper(); } else { EstatusCargado = C01.Descrip; }
+                if (C01.resumen != null) { resumenCargado = C01.resumen.ToUpper(); } else { resumenCargado = C01.resumen; }
+                if (C01.NotasCaso == "" || C01.NotasCaso == null) { NotasCargadas = "SIN NOTAS"; } else { NotasCargadas = C01.NotasCaso.ToUpper(); }
+                Id_tipoCaso = C01.id_CTipoCaso;
+                ver = false;
+            }
+            else
+            {
+                ErrorMsg = "No existe un folio asociado a ese CUM, o el folio único o CUM son erroneos.";
+                ver = false;
+                Ver = false;
+            }
+        }
+    }
+
+
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Seguimiento al recurso de revisión ante la CNH</title>
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+    <!-- input redondeado -->
+    <link href="css/rounded.css" rel="stylesheet">
+    <link href="css/botones.css" rel="stylesheet">
+    <link href="css/typefile.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+</head>
+<body id="page-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="default#page-top">  CORTE NACIONAL DE HONOR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#portfolio">Integrantes </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <section class="page-section bg-primary" id="about">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0"><br />Seguimiento a recurso de revisión</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4">
+                       <strong>Instrucciones: </strong> Aquí podrá consultar el estatus de su solicitud de revisión ante la CNH, deberá proporcionar el CUM y número de folio con el cual se registró su trámite.
+                    </p>
+                    <a class="btn btn-light btn-xl js-scroll-trigger" href="#services">Iniciar</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section" id="services">
+        <div class="container my-1">
+
+
+            <center><img src="img/cnh.svg" class="img-responsive" width="350" height="200" /></center>
+            <h2 class="text-center mt-2">Seguimiento al recurso de revisión</h2>
+            <hr class="divider my-3">
+
+            @if (ErrorMsg != "")
+            {
+                Ver = false;
+                <div class="alert alert-warning">   <center>  <strong>¡ADVERTENCIA!</strong> @ErrorMsg <A HREF="Seguimiento" target="_self"><STRONG>REGRESAR</STRONG></A></center>  </div>
+            }
+
+
+
+            @if (ver == true)
+            {
+                <form name="forma1" id="forma1" method="post">
+                    <input type="hidden" name="mandado" value="1" />
+                    <div class="row">
+                        <p class="col-lg-12 col-md-12 text-center"></p>
+                        <p class="text-muted mb-1 text-center">  <small>Instrucciones: Ingrese su CUM, el folio único de trámite y verifique la casilla para continuar.</small></p>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 text-center">
+                            <div class="mt-6">
+                                *CUM:
+                                <input type="text" maxlength="10" max="10" alt="CUM" id="ip1" name="cum" required title="CUM" placeholder="CUM" />
+                            </div>
+                        </div>
+                        <br /><br /> <br /><br />
+                        <div class="col-lg-6 col-md-6 text-center">
+                            <div class="mt-6">
+                                *Folio:
+                                <input type="text" maxlength="5" max="5" alt="Número de trámite" id="ip1" name="folio" required title="Número de trámite" placeholder="Número de trámite" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 text-center"><br /></div>
+                        <div class="col-lg-4 col-md-4 text-center">
+                            <div class="mt-6">
+                                <div class="g-recaptcha" data-sitekey="6Lf39PYUAAAAAEn8_VkQfYESgoqJuw4sShIj_dXd"></div>
+                                <font color="red"> <small> @if (mensaje != "")
+                                {@mensaje }  </small>  </font>
+                            </div>
+                        </div>
+                        <div class="col-lg-1 col-md-1 text-center"><br /> <div class="mt-6"> <input type="submit" onclick="Mandar1();" class="btn btn-primary  js-scroll-trigger" />   </div>  </div>
+                    </div>
+                </form>
+            }
+            <br />
+            <hr />
+
+            @if (IsPost && mandado == "1")
+            {
+                if (Ver == true)
+                {
+                    <form name="forma2" id="forma2" method="post">
+                        <br />
+                        <div class="row">
+                            <div class="col-lg-3 col-md-3 "> CUM: <br /><input type="text" name="CumCargado" id="ip1" value="@CumCargado" placeholder="CUM" disabled>    </div>
+                            <div class="col-lg-3 col-md-3 ">Provincia:<br /> <input type="text" name="provincia" id="ip1" value="@ProvinciaCargada" placeholder="Provincia" disabled>  </div>
+                            <div class="col-lg-3 col-md-3 ">Estatus: <br /><input type="text" id="ip1" name="estatus" value="@EstatusCargado.ToUpper()" placeholder="Estatus" disabled> </div>
+                            <div class="col-lg-1 col-md-1 "> Folio:<br /> <input type="text" id="ip1" name="folio" value="@Request.Form["folio"]" placeholder="Folio" disabled> </div>
+                        </div>
+                        <br />
+                        <div class="row">
+                            <div class="col-lg-8"> <textarea class="form-control" name="resumen" rows="1" placeholder="Resumen del caso" readonly>@resumenCargado</textarea>   </div>
+                            <div class="col-lg-4">
+                                @{  string selectQueryStringget = "SELECT * from CTipoCaso order by descrip_tipo_caso";  }
+                                <select id="tipo" name="tipo" disabled class="form-control select">
+                                    @foreach (var row3 in Conn.Query(selectQueryStringget))
+                                    {
+                                        <option value="@row3.Id_TipoCaso" @if (Id_tipoCaso == row3.Id_TipoCaso) { @Html.Raw("selected") ; }>@row3.descrip_tipo_caso.ToUpper()</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <br /><br /><br />
+                        <div class="row">
+                            <div class="col-lg-12 col-md-12 text-center">
+                                <small> En esta sección se muestran las notas generadas por la Corte Nacional de Honor.</small>
+                                <div class="mt-12">  <textarea class="form-control" name="texto" rows="8" placeholder="Notas del caso" readonly>@NotasCargadas</textarea> </div>
+                            </div>
+                        </div>
+                        <br />
+                    </form>
+                                        }
+                                    }
+
+        </div>
+    </section>
+
+
+
+
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Corte Nacional de Honor <Br />Asociación de Scouts de México A.C. <br />Copyright &copy; CNH. Creata 2020</div>
+        </div>
+    </footer>
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+</body>
+</html>
+
+<script>
+    function Mandar(){
+        document.forms["forma1"].submit();
+    }
+
+    function Mandar2() {
+        document.forms["forma2"].submit();
+    }
+
+</script>
+
+
+@{
+
+    Conn.Close();
+    Conn.Dispose();
+}

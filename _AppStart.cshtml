@@ -1,0 +1,39 @@
+﻿@using Microsoft.Web.Helpers;
+
+
+
+@{
+    WebSecurity.InitializeDatabaseConnection("Dashboard", "UserProfile", "UserId", "Email", autoCreateTables: true);
+
+    // Para permitir a los usuarios de este sitio iniciar sesión con sus cuentas desde otros sitios como Microsoft, Facebook o Twitter,
+    // debe actualizar este sitio. Para más información, visite http://go.microsoft.com/fwlink/?LinkID=226949
+
+    //OAuthWebSecurity.RegisterMicrosoftClient(
+    //    clientId: "",
+    //    clientSecret: "");
+
+    //OAuthWebSecurity.RegisterTwitterClient(
+    //    consumerKey: "",
+    //    consumerSecret: "");
+
+    //OAuthWebSecurity.RegisterFacebookClient(
+    //    appId: "",
+    //    appSecret: "");
+
+    //OAuthWebSecurity.RegisterGoogleClient();
+
+
+
+
+   // WebMail.SmtpServer = "ns103.zabco.net";
+     WebMail.SmtpServer = "smtp01.zabco.net";
+ 
+   // WebMail.SmtpServer = "smtp.cnhscouts.org.mx";
+   // WebMail.SmtpPort = 25;
+  //  WebMail.EnableSsl = false;
+    WebMail.UserName = "cnh@cnhscouts.org.mx";
+    WebMail.Password = "5GkeXPpA4NTR";
+    WebMail.From = "cnh@cnhscouts.org.mx";
+
+    // Para obtener más información acerca de cómo optimizar las secuencias de comandos y las hojas de estilo, visite http://go.microsoft.com/fwlink/?LinkID=248973
+}

@@ -1,0 +1,11 @@
+﻿@{ var Conn = Database.Open("Dashboard");}
+<label class="control-label" for="typeahead">Menú donde publicar: </label>
+@{ var selectQueryString1 = "select id,NombreMenu from webpages_NombreMenu order by id";}
+<select id="Menu" name="Menu" class="form-control  select">
+    @foreach (var row0 in Conn.Query(selectQueryString1))  {
+        <option value="@row0.id">@row0.NombreMenu.ToUpper()</option>
+    }
+</select>
+@{ Conn.Close();
+   Conn.Dispose();
+}

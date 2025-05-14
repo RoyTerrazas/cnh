@@ -1,0 +1,201 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Menú firmas";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+   int rol = 0;
+
+
+    var sqlText02 = "SELECT RoleId FROM webpages_UsersInRoles WHERE UserId=@0";
+    var C02 = Conn.QuerySingle(sqlText02, WebSecurity.CurrentUserId);
+    if (C02 != null) { rol = Convert.ToInt32(C02.RoleId); }
+
+    string borrarId = "", borrar = "";
+    string RutaFirmaSecretario = "", Rutacompleta = "";
+
+    // @Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwww");
+
+
+    borrar = Request.Form["borrar"];
+    borrarId = Request.Form["borrarId"];
+
+    //  @borrar;
+    //  @borrarId;
+
+
+    if (borrar=="1" && borrarId !="" && IsPost) {
+
+
+        //buscar la imagen anterior y borrarla
+        var sqlText = "SELECT * FROM TFirmasSecretario WHERE id=@0";
+        var Cn = Conn.QuerySingle(sqlText, borrarId);
+        if (Cn != null)
+        {
+            RutaFirmaSecretario = Cn.RutaFirmaSecretario;
+            Rutacompleta = Server.MapPath("~/protected/FirmasSecretarios/" + RutaFirmaSecretario);
+            if (File.Exists(Rutacompleta)) { File.Delete(Rutacompleta); }
+        }
+
+        var deleteCommand = "DELETE FROM TFirmasSecretario WHERE Id = @0";
+        Conn.Execute(deleteCommand, borrarId);
+    }
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Administración de firmas <small>Secretarios de la Corte Nacional de Honor.</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Administración de actas de la CNH"><i class="fa fa-clone"></i>Firmas</a></li>
+        </ol>
+    </section>
+
+
+    <form method="post" name="forma">
+        <section class="content">
+            <div class="row">
+                <section class="content">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <div class="box">
+                                <div class="box-header">
+                                    <h3 class="box-title">Firmas capturadas de los secretarios de la corte</h3>
+                                    <button type="button" class="btn btn-default pull-right" onclick="javascript:Nuevo()">Nuevo</button>
+                                </div>
+                                <!-- /.box-header -->
+                                <div class="box-body">
+                                    <table id="example2" class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre del secretario</th>
+                                                <th>Opciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+
+
+
+
+@{
+    string selectQueryString = "SELECT * from VFirmas order by nombre_consejero";
+}
+
+@foreach (var row in Conn.Query(selectQueryString))
+{
+                                            <tr>
+                                                <td>@row.Nombre_consejero.ToUpper()</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-default" onclick="javascript:Editar('@row.id')">Editar</button>
+                                                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                            <span class="caret"></span>
+                                                            <span class="sr-only">Toggle Dropdown</span>
+                                                        </button>
+                                                        <ul class="dropdown-menu" role="menu">
+                                                            <li>
+                                                            @if (rol == 1) { <a href="#" onclick="javascript:Borrar('@row.id')">Borrar</a>  }
+                                                            else
+                                                            {<a href="#" ></a>   }
+                                                    
+                                                            
+                                                            
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+
+                                                 
+                                                </td>
+                                            </tr>
+
+}
+
+
+
+                                        </tbody>
+
+                                    </table>
+                                </div>
+                                <!-- /.box-body -->
+                            </div>
+
+                        </div>
+                        <!-- /.col -->
+                    </div>
+                    <!-- /.row -->
+                </section>
+            </div>
+        </section>
+    </form>
+</div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+
+    function Borrar(id) {
+
+        if (confirm('¿Esta seguro que desea borrar el registro?')) {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'MenuFirmas');
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'borrarId');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', id);
+            myvar1 = document.createElement('input');
+            myvar1.setAttribute('name', 'borrar');
+            myvar1.setAttribute('type', 'hidden');
+            myvar1.setAttribute('value', 1);
+            form.appendChild(myvar);
+            form.appendChild(myvar1);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function Editar(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'FirmasNuevo');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'Id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'editar');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', 1);
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function Nuevo() {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'FirmasNuevo');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'nuevo');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', 1);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    </script>

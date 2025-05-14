@@ -1,0 +1,279 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Búsquedas";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+    string cum = "", folio = "", Interpone = "";
+    string MensajeErr = "", enviado = "", SQL = "";
+    bool MostrarInfo = false;
+    enviado = Request.Form["enviado"];
+
+    if (IsPost && enviado == "1")    {
+
+
+
+        cum = Request.Form["cum"];
+        folio = Request.Form["folio"];
+        Interpone = Request.Form["Interpone"];
+
+
+       // @Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+        cum = Request.Form["cum"];
+        folio = Request.Form["folio"];
+        Interpone = Request.Form["Interpone"];
+
+
+
+
+        //opciones para la busqueda--------------------------------------------------------------------------------
+        // cum folio interpone
+        if (cum != "" && folio != "" && Interpone != "")        {
+            SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where cum='" + cum + "' AND ID='" + folio + "' AND NOMBRE = '" + Interpone + "'";
+            //  @Html.Raw("1");
+
+            MostrarInfo = true;
+        }
+        else        {
+            // cum folio
+            if (cum != "" && folio != "" && Interpone== "")            {
+                SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where cum='" + cum + "' AND ID='" + folio + "'";
+                MostrarInfo = true;
+                //   @Html.Raw("2");
+            }
+            else            {     //cum interpone
+                if (cum != "" && Interpone != "" && folio=="")                {
+                    SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where cum='" + cum + "' AND NOMBRE = '" + Interpone + "'";
+                    MostrarInfo = true;
+                    //   @Html.Raw("3");
+                }
+                else                {    //folio interpone
+                    if (folio != "" && Interpone != ""  && cum=="")                    {
+                        SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where ID='" + folio + "' AND NOMBRE = '" + Interpone + "'";
+                        MostrarInfo = true;
+                        //    @Html.Raw("4");
+                    }
+                    else                    {     //cum
+                        if (cum!="" )                        {
+                            SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where cum='" + cum + "'";
+                            MostrarInfo = true;
+                            //     @Html.Raw("5");
+                        }
+                        else                        {    //folio
+                            if (folio != "")                            {
+                                SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso from VSolicitudTramite where ID='" + folio + "'";
+                                MostrarInfo = true;
+                                //     @Html.Raw("6");
+                            }
+                            else                            {  //interpone
+                                if (Interpone != "")                                {
+                                    SQL = "select nombre,cum,nombre_provincia,id,estatus,descrip,fecha,descrip_tipo_caso  from VSolicitudTramite where  NOMBRE = '" + Interpone + "'";
+                                    MostrarInfo = true;
+                                    //  @Html.Raw("7");
+                                }
+                                else                                {
+                                    MensajeErr = "No se encontro información o no se seleccionó ningún parámetro de búsqueda.";
+                                    MostrarInfo = false;
+                                    //  @Html.Raw("8");
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+    }//ispost
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Búsquedas<small> Revisión de información por parámetros</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Busqueda de informacón">Búsquedas</a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+            
+                
+                    <div class="box">
+
+                        <div class="box-header ">
+                            <h3 class="box-title">Seleccione el tipo de búsqueda de solicitudes de revisión de casos</h3>
+                        </div>
+                               
+                         <form role="form" method="post" name="forma">
+                             <input type="hidden" name="enviado" value="1" />
+                            <div class="box-body">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="cum">Por CUM</label>
+                                        <input type="text" class="form-control" id="cum" name="cum" placeholder="CUM" max="10" maxlength="10">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="folio">Por folio</label>
+                                        <input type="number" class="form-control" id="folio" name="folio" placeholder="Folio"  maxlength="4">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="interpone">Nombre completo de quien interpone</label>
+                                        <input type="text" class="form-control" id="Interpone" name="Interpone" placeholder="Nombre de quien interpone">
+                                    </div>
+                                </div>
+                                </div>
+                             <div class="box-footer">  
+                                 @if (MensajeErr != "") {<font color="red"><strong>@MensajeErr </strong></font>}
+
+                              <button type="submit" class="btn pull-right">Buscar</button>  
+                             
+                               </div>
+                        </form>
+
+                    </div>
+           
+                
+                
+           
+            
+                   
+            
+         
+
+
+
+            </div>
+        </div>
+
+
+
+
+        @if (MostrarInfo==true) {
+
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box">
+                    <div class="box-header ">  <h3 class="box-title">Resultados de la búsqueda</h3>     </div>
+
+                    <div class="box-body">
+                        <div class="col-md-12">
+                            
+                            <div class="box">
+                                <div class="box-header">
+                                    <h3 class="box-title">Resultados</h3>
+                                </div>
+                   
+                                <div class="box-body no-padding">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <tr>
+                                                <th style="width: 10px">Folio</th>
+                                                <th>Interpone</th>
+                                                <th>CUM</th>
+                                                <th>Provincia</th>
+                                                <th>Tipo</th>
+                                                <th>Estatus</th>
+                                                <th>Fecha</th>
+                                                <th>Opciones</th>
+                                            </tr>
+
+                                                        @foreach (var row in Conn.Query(SQL))          {
+                                                        <tr>
+                                                            <td>@row.id</td>
+                                                            <td>@row.Nombre</td>
+                                                            <td>@row.cum</td>
+                                                            <td>@row.Nombre_Provincia</td>
+                                                            <td>@row.descrip_tipo_caso </td>
+                                                            <td>@row.Descrip</td>
+                                                            <td>@Functions.formatofecha(row.fecha)</td>
+                                                            <td>
+                                                                <div class="btn-group">
+                                                                    <small>
+                                                                        <button type="button" class="btn btn-block btn-default" onclick="abrirNuevo(@row.id);">Visualizar</button>
+                                                                    </small>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        }
+                                        </table>
+                                    </div>
+                                </div>
+                          
+                            </div>
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                                
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        }
+
+    </section>
+
+</div>
+
+<script type="text/javascript">
+    function abrirNuevo(id) {
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'VerSolicitud2');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'SoloVer');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', 1);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

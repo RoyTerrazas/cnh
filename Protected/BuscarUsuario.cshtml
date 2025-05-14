@@ -1,0 +1,174 @@
+﻿@{
+    Layout = "_SiteLayout.cshtml";
+    PageData["Title"] = "Búsqueda de usuarios en todas las dependencias";
+    var Conn = Database.Open("Dashboard");
+    string errorMessage = "";
+    Functions.SeguridadAccesoRecursos(Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path)));
+
+    string num_emp = "", nombre="", paterno="", usuario="",tipo_cuenta="", nombre_completo="",depedenc="";
+    int dependencia = 0, userId = 0;
+    bool habilitado = true;
+
+    num_emp = Request.Form["num_emp"];
+
+    //Cargar datos del empleado
+    if (IsPost && num_emp != null)
+    {
+
+        var sqlText01n = "SELECT nombre,paterno,email,RoleName,Id_Cdependencias,habilitado,UserId FROM VUsuarioDatosRoles WHERE numero_empleado=@0";
+        var C01n = Conn.QuerySingle(sqlText01n, num_emp);
+        if (C01n != null) {
+
+            nombre = C01n.nombre;
+            paterno = C01n.paterno;
+            nombre_completo = nombre.ToUpper() + " " + paterno.ToUpper();
+            usuario = C01n.email;
+            tipo_cuenta = C01n.RoleName;
+            dependencia = C01n.Id_Cdependencias;
+            habilitado = C01n.habilitado;
+            userId = C01n.UserId;
+
+            var dep = "SELECT NombreDependencia FROM CDependencias WHERE ID_DEPENDENCIA=@0";
+            var Cdep = Conn.QuerySingle(dep, dependencia);
+            if (Cdep != null)
+            { depedenc = Cdep.NombreDependencia; }
+
+        }
+        else { errorMessage = "El usuario buscado no tiene cuenta de acceso."; }
+
+    }//isposted
+
+}
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>
+            Búsqueda de cuentas para usuarios
+            <small>Búsquedas en todas las dependencias</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="AdministracionCuentas" title="AdministracionCuentas"><i class="fa fa-user"></i>Administración de usuarios</a></li>
+            <li class="active"><a href="#" title="BUsqueda de usuarios"><i class="fa fa-search-plus"></i>Busqueda de usuarios </a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+
+
+        @if (errorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+
+
+
+        <div class="box box-default color-palette-box">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa fa-search-plus"></i> Búsqueda de usuarios en todas las dependencias</h3>
+            </div>
+
+            <form name="forma" method="post" id="forma">
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-sm-4"><input type="number" name="num_emp" id="num_emp" class="form-control" placeholder="Número de empleado">&nbsp;</div>
+                        <div class="col-sm-4"><button type="button" onclick="javascript:enviar_formulario1();" class="btn btn-primary">Buscar</button></div>
+                        <div class="col-sm-4">&nbsp;</div>
+                    </div>
+                </div>
+           </form>
+
+            @{
+                if (num_emp != null) {
+                <form name="forma2" method="post" id="forma2" >
+                    <div class="box-body">
+                        <div class="row">
+
+
+
+                            <div class="col-sm-12"><strong>Número de empleado:</strong> @num_emp</div>
+                            <div class="col-sm-12"><strong>Usuario:</strong> @usuario</div>
+                            <div class="col-sm-12"><strong>Nombre:</strong> @nombre_completo</div>
+                            <div class="col-sm-12"><strong>Dependencia:</strong> @depedenc</div>
+                            <div class="col-sm-12"><strong>Habilitado:</strong> @habilitado</div>
+                            <div class="col-sm-12"><strong>Tipo de cuenta:</strong> @tipo_cuenta</div>
+                            <!--
+                            <div class="col-sm-12">
+                                <button type="button" class="btn btn-default" title="Editar" onclick="MandarConParametro(@num_emp,'E');"><i class="fa fa-edit"></i></button>
+                                <button type="button" class="btn btn-default" title="Cambiar contraseña" onclick="CambiarContrasena(@userId);"><i class="fa fa-unlock-alt"></i></button>
+                            </div>
+
+              -->
+
+                        </div>
+                    </div>
+                </form>
+
+                }
+
+
+            }
+
+
+
+
+                <div class="box-footer">   </div>
+</div>
+
+
+    </section>
+</div>
+
+
+
+<script>
+function enviar_formulario1(){
+    document.forma.submit()
+}
+
+function enviar_formulario2() {
+    document.forma2.submit()
+}
+
+function MandarConParametro(A,B) {
+      
+    document.getElementById('numero_empleado').value = A.toString();
+    document.getElementById('accion').value = B.toString();
+    document.forms['forma2'].submit();
+    alert("entre"+A.toString());
+}
+
+function CambiarContrasena(id) {  //https://stackoverflow.com/questions/1350917/send-post-variable-with-javascript
+    // funcion que crea una forma dinamica y postea datos a otra
+    form = document.createElement('forma2');
+    form.setAttribute('method', 'POST');
+    form.setAttribute('action', 'EditarContrasena');
+
+
+    myvar = document.createElement('input');
+    myvar.setAttribute('name', 'id');
+    myvar.setAttribute('type', 'hidden');
+    myvar.setAttribute('value', id);
+
+    form.appendChild(myvar);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+</script>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+
+

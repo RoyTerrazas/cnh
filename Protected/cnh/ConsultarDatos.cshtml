@@ -1,0 +1,262 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Consultar Datos";
+
+    var ConnSisas = Database.Open("Sisas");
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+    int rol = 0;
+
+
+    var sqlText02 = "SELECT RoleId FROM webpages_UsersInRoles WHERE UserId=@0";
+    var C02 = Conn.QuerySingle(sqlText02, WebSecurity.CurrentUserId);
+    if (C02 != null) { rol = Convert.ToInt32(C02.RoleId); }
+
+    //------------------------------------------
+
+    string paterno = "", materno = "", nombres = "", cum = "";
+    var sqlText03 = "";
+
+
+    nombres = Request.Form["nombres"];
+    materno = Request.Form["materno"];
+    paterno = Request.Form["paterno"];
+    cum = Request.Form["cum"];
+   
+     if (IsPost)   {
+        if (nombres != "" && paterno == "" && materno == "")        {
+                 sqlText03 = "select * from VistaReporteMiembro where nombre like '" + nombres + "'";
+        }
+        else if (nombres == "" && paterno != "" && materno == "")        {
+               sqlText03 = "select * from VistaReporteMiembro where primerapellido like '" + paterno + "'";
+        }
+        else if (nombres == "" && paterno == "" && materno != "")        {
+              sqlText03 = "select * from VistaReporteMiembro where segundoapellido like '" + materno + "'";
+        }
+        else if (nombres != "" && paterno != "" && materno != "")        {
+              sqlText03 = "select * from VistaReporteMiembro where nombre like '" + nombres + "' and primerapellido like'" + paterno + "' and segundoapellido like'" + materno + "'";
+        }
+        else if (nombres != "" && paterno != "")        {
+              sqlText03 = "select * from VistaReporteMiembro where nombre like '" + nombres + "' and primerapellido like'" + paterno + "'";
+        }
+        else if (nombres != "" && materno != "")        {
+              sqlText03 = "select * from VistaReporteMiembro where nombre like '" + nombres + "' and segundoapellido like'" + materno + "'";
+        }
+    }
+
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Consultar Datos     <small>Sección de consulta de datos restringidos</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Administración de actas de la CNH"><i class="fa fa-clone"></i>Consultar Datos</a></li>
+        </ol>
+    </section>
+
+
+    <form method="post" name="forma">
+        <section class="content">
+            <div class="row">
+                <section class="content">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="box box-default">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Ingrese los datos requeridos</h3>
+                                    <span class="label label-primary pull-right"><i class="fa fa-user-circle"></i></span>
+                                </div><!-- /.box-header -->
+                                <div class="box-body">
+                                    <input type="text" id="nombres" name="nombres" class="form-control input-sm" placeholder="Nombres..." maxlength="30" />
+                                    <input type="text" id="paterno" name="paterno" class="form-control input-sm" placeholder="Paterno..." maxlength="30" />
+                                    <input type="text" id="materno" name="materno" class="form-control input-sm" placeholder="Materno..." maxlength="30" />
+                                    <br />
+                                    <input type="submit" id="boton1" class="btn btn-default pull-right" name="Buscar" value="Buscar" />
+
+                                </div><!-- /.box-body -->
+                            </div><!-- /.box -->
+                        </div><!-- /.col -->
+                        <div class="col-sm-6">
+                            <div class="box box-default">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Ingrese el CUM</h3>
+                                    <span class="label label-primary pull-right"><i class="fa fa-user-circle-o "></i></span>
+                                </div><!-- /.box-header -->
+                                <div class="box-body">
+                                    <input type="text" id="cum" name="cum" class="form-control input-sm" placeholder="CUM..." maxlength="10" max="10" /><br />
+
+                                    <input type="submit" id="boton2" class="btn btn-default pull-right" name="Buscar" value="Buscar" />
+
+
+                                </div><!-- /.box-body -->
+                            </div><!-- /.box -->
+                        </div><!-- /.col -->
+                    </div>
+
+
+
+
+
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="box box-default">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Datos confidenciales:</h3>
+                                    <span class="label label-primary pull-right"><i class="fa fa-user-circle"></i></span>
+                                </div><!-- /.box-header -->
+                                <div class="box-body">
+
+
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>CUM</th>
+                                                <th>Nombre</th>
+                                                <th>Paterno</th>
+                                                <th>Materno</th>
+                                                <th>Activo</th>
+                                                <th>Provincia</th>
+                                                <th>Grupo</th>
+                                                <th>Email</th>
+                                                <th>Cargo</th>
+
+                                                <th>Telefono</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+
+                                            @{
+
+
+                                                //when cum is null
+                                                if (IsPost && cum == "")
+                                                {
+                                                    // sqlText03 = "select * from VistaReporteMiembro where nombre like '%" + nombres + "%'";
+                                                    foreach (var roww in ConnSisas.Query(sqlText03))
+                                                    {
+                                                        @Html.Raw("<tr>");
+                                                        @Html.Raw("<th>" + roww.cum + "</th>");
+                                                        @Html.Raw("<th>" + roww.nombre + "</th>");
+                                                        @Html.Raw("<th>" + roww.primerapellido + "</th>");
+                                                        @Html.Raw("<th>" + roww.segundoapellido + "</th>");
+                                                        @Html.Raw("<th>" + roww.ActivoString + "</th>");
+                                                        @Html.Raw("<th>" + roww.descripcionprovincia + "</th>");
+                                                        @Html.Raw("<th>" + roww.numerogrupo + "</th>");
+                                                        @Html.Raw("<th><a href='mailto:" + roww.email + "'>" + roww.email + "</a></th>");
+
+                                                        var sqlTextRep = "select * from VistaReporteador where cum = '" + roww.cum + "'";
+                                                        var C0Rep = ConnSisas.QuerySingle(sqlTextRep, roww.cum); // ojo para que sea solo uno es query single
+                                                        if (C0Rep != null)
+                                                        {
+                                                            @Html.Raw("<th>" + C0Rep.cargos + "</th>");
+                                                            @Html.Raw("<th>" + C0Rep.telefonomiembro + "</th>");
+                                                        }
+                                                        @Html.Raw("</tr>");
+                                                    }
+                                                }
+                                                //---------------------------------
+
+
+
+
+                                                //when cum is not null
+                                                if (IsPost && cum != "")
+                                                {
+
+
+
+
+
+
+                                                    sqlText03 = "select * from VistaReporteMiembro where cum ='" + cum + "'";
+                                                    foreach (var roww in ConnSisas.Query(sqlText03))
+                                                    {
+                                                        @Html.Raw("<tr>");
+                                                        @Html.Raw("<th>" + roww.cum + "</th>");
+                                                        @Html.Raw("<th>" + roww.nombre + "</th>");
+                                                        @Html.Raw("<th>" + roww.primerapellido + "</th>");
+                                                        @Html.Raw("<th>" + roww.segundoapellido + "</th>");
+                                                        @Html.Raw("<th>" + roww.ActivoString + "</th>");
+                                                        @Html.Raw("<th>" + roww.descripcionprovincia + "</th>");
+                                                        @Html.Raw("<th>" + roww.numerogrupo + "</th>");
+                                                        @Html.Raw("<th><a href='mailto:" + roww.email + "'>" + roww.email + "</a></th>");
+                                                        @Html.Raw("<th>" + roww.cargos + "</th>");
+
+                                                        //obtener telefono
+                                                        string telef = "";
+                                                        var sqlText04 = "select TelefonoMiembro from VistaReporteador where cum ='" + roww.cum + "'";
+                                                        var C04 = ConnSisas.QuerySingle(sqlText04); // ojo para que sea solo uno es query single
+                                                        if (C04 != null)
+                                                        { telef = C04.TelefonoMiembro; }
+
+                                                        @Html.Raw("<th>" + telef + "</th>");
+                                                    }
+
+
+
+
+
+
+
+                                                    @Html.Raw("</tr>");
+                                                }
+
+
+
+                                            }
+
+
+
+
+
+
+
+
+
+                                        </tbody>
+                                    </table>
+
+                      
+
+                                </div><!-- /.box-body -->
+                            </div><!-- /.box -->
+                        </div><!-- /.col -->
+
+                    </div>
+                </section>
+            </div>
+        </section>
+    </form>
+</div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+    ConnSisas.Close();
+    ConnSisas.Dispose();
+}
+
+
+<script type="text/javascript">
+
+
+
+
+
+
+
+</script>

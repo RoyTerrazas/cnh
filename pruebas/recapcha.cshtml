@@ -1,0 +1,61 @@
+﻿
+@{
+    string paso = Request.Form["paso"];
+
+    if (IsPost) {
+
+
+
+        //Validate Google recaptcha here
+        var response = Request["g-recaptcha-response"];
+        string secretKey = "6Lf39PYUAAAAAAGgaT8rW84MVz6qEdgTWTlLrKAA";
+        var client = new WebClient();
+        var result = client.DownloadString(string.Format("https://www.google.com/recaptcha/api/siteverify?secret={0}&response={1}", secretKey, response));
+       // @result;
+        //@Html.Raw("<br> ");
+        string substring = result.Substring(14, 5);
+
+        @substring;
+        @Html.Raw("<br>");
+
+       // if (substring.Trim() == "fals") { }
+        if (substring.Trim() == "fals") { @Html.Raw("no manda"); }
+        else {@Html.Raw("si manda"); }
+
+
+
+            }//ispost
+
+
+
+        }
+
+
+
+<html>
+<head>
+    <script src='https://www.google.com/recaptcha/api.js' type="text/javascript"></script>
+</head>
+<body>
+    <div>
+
+        <form method="post" name="Home">
+            <div class="g-recaptcha" data-sitekey="6Lf39PYUAAAAAEn8_VkQfYESgoqJuw4sShIj_dXd"></div>
+            <input type="submit" value="Submit" />
+        </form>
+
+    </div>
+
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+

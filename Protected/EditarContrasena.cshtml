@@ -1,0 +1,177 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Cambio de contraseña";
+    var Conn = Database.Open("Dashboard");
+    string errorMessage = "";
+    WebSecurity.RequireAuthenticatedUser();
+    bool hasLocalAccount = OAuthWebSecurity.HasLocalAccount(WebSecurity.CurrentUserId);
+    // Validación de la instalación
+    Validation.Add("newPassword",
+    Validator.StringLength(
+    maxLength: Int32.MaxValue,
+    minLength: 6,
+    errorMessage: "ERROR: La longitud de la clave debe ser por lo menos de 6 caracteres"));
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("SinPermiso"); }
+
+    string id_emp = "";
+    string nombre_completo = "";
+    string num_empleado = "";
+    string num_impe = "";
+    string nombre_dependencia = "";
+    string useremail = "";
+    id_emp = Request.Form["id"];
+    var UserId = Request.Form["id"];
+    var action = Request.Form["action"];
+    string successMessage = "";
+
+    var sqlText0 = "SELECT email,nombre,paterno,materno FROM VUsuarioDatosRoles WHERE UserId=@0";
+    var C0 = Conn.QuerySingle(sqlText0, id_emp);
+    if (C0 != null)  {
+        useremail = C0.email;
+        nombre_completo = C0.nombre.Trim() + " " + C0.paterno.Trim() + " " + C0.materno.Trim();
+
+
+    }
+
+    if (IsPost && Request.Form["mandado"]=="1")   {
+    
+        if (action == "password") {
+            var newPassword = Request.Form["newPassword"].Trim();
+            var confirmPassword = Request.Form["confirmPassword"].Trim();
+            if (hasLocalAccount) {
+                        var username = "";
+                        var TokenActual = "";
+                        username = useremail.ToString();
+
+                        if (newPassword=="" || newPassword==null || confirmPassword=="" || confirmPassword==null) {
+                            successMessage = " ERROR: los campos de contraseña no pueden dejarse en blanco.";
+                        } else {
+                                    if (newPassword.Trim() == confirmPassword.Trim()) {
+                                        if (WebSecurity.UserExists(username.Trim()))  {
+                                            if (Validation.IsValid())  {
+                                                TokenActual = WebSecurity.GeneratePasswordResetToken(useremail.Trim(), 5);
+                                                WebSecurity.ResetPassword(TokenActual, newPassword);
+                                                successMessage = "Se cambio la contraseña";
+                                            }
+                                        }// checar si el usuario existe
+                                        else { successMessage = " ERROR: El usuario no existe"; }
+                                    }// chech match password
+                                    else { successMessage = " ERROR: Las claves proporcionadas no coinciden"; }
+                        }
+
+            }// has an account
+        }// action = password
+    }//ispost
+}
+    
+    <div class="content-wrapper">
+
+        <section class="content-header">
+            <h1>
+                Cambio de contraseña a usuario.
+                <small>Servicio para administradores.</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="AdministracionCuentas" title="Administración de cuentas"><i class="fa  fa-user"></i>Administración de cuentas</a></li>
+                <li class="active"><a href="#" title=""><i class="fa fa-unlock-alt"></i>Cambio de contraseña a usuario</a></li>
+            </ol>
+        </section>
+        <section class="content">
+            @if (errorMessage != "")
+            {<div class="alert alert-error">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4>ERROR.</h4>
+                    @Html.Raw(errorMessage)
+                </div>}
+
+            @if (successMessage != "")
+            {<div class="alert alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ALERTA.</h4>
+                @Html.Raw(successMessage)
+            </div>}
+
+            @if(UserId.IsEmpty())
+            {
+                            <div class="alert alert-error">
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                <h4>ERROR.</h4>
+                                El correo registrado es inexistente, favor de regresar e intentar de nuevo.
+                            </div>
+            }
+           
+            <div class="box box-default color-palette-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-unlock-alt"></i> Cambio de contraseña</h3>
+                </div>
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-sm-2"> </div>
+                        <div class="col-sm-8">
+                            <div class="form-group">
+                                <label>Nombre: <small>(Cuenta: @useremail)</small></label>
+                                <input type="text" readonly class="form-control" value="@nombre_completo.ToUpper()" placeholder="Nombre">
+                            </div>
+                        </div>
+             
+                    </div>
+                    <form method="post">
+                             
+                                    @Html.ValidationSummary(excludeFieldErrors: true)
+                                    <input type="hidden" name="mandado" value="1" />
+                                    <input type="hidden" name="id" value="@UserId" />
+
+                                    <div class="row">
+                                        <div class="col-sm-2"></div>
+                                        <div class="col-sm-4">
+                                            <div class="box-body">
+                                                <label for="newPassword" @if (!ModelState.IsValidField("newPassword")) { <text> class="error-label" </text>   }>Nueva contraseña:</label><br>
+                                                <input type="password" autofocus style="height:33px" placeholder="Contraseña" min="6" max="10" maxlength="10" class="form-control textbox" id="newPassword" required name="newPassword" @Validation.For("newPassword") />
+                                                @Html.ValidationMessage("newPassword")
+                                             </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="box-body">
+                                                <label for="confirmPassword" @if (!ModelState.IsValidField("confirmPassword")) { <text> class="error-label" </text>   }>Confirmar nueva contraseña:</label><br>
+                                                    <input type="password" style="height:33px" placeholder="Repita la contraseña" min="6" max="10" maxlength="10" class="form-control textbox" id="confirmPassword" required name="confirmPassword" @Validation.For("confirmPassword") />
+                                                    @Html.ValidationMessage("confirmPassword")
+                                             </div>
+                                        </div>
+                                    </div>
+                                    @if (hasLocalAccount)  {
+                                    <div class="box-footer">
+                                        <div class="form-actions">
+                                            <div class="row">
+                                                <div class="col-xs-10"></div>
+                                                <div class="col-xs-1">
+                                                    <input type="button" id="Cancelar" class="btn pull-right" value="Cancelar" onClick="location.href = 'AdministracionCuentas' ">
+                                                </div>
+                                                <div class="col-xs-1">
+                                                    <button type="submit" class="btn  pull-right">Aceptar</button>
+                                                </div>
+                                                <input type="hidden" name="action" value="password">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    }
+                                    else  {
+                                    <button type="submit" name="action" value="password"> Establecer contraseña</button>
+                                    }
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+
+
+

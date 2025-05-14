@@ -1,0 +1,196 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Administarción de menus";
+    string errorMessage = "";
+    var accesoUsuario = false;
+    var accesoGrupo = false;
+    var selectQueryString = "";
+    string RolId = "", borrarId="",borrar="";
+    var Conn = Database.Open("Dashboard");
+
+
+    accesoGrupo = Functions.PermisosGrupos(1);
+    accesoUsuario = Functions.PermisosUsuarios(1);
+    borrarId = Request.Form["borrarId"];
+
+
+        if (borrarId!=null) {
+        var sqlText = "SELECT Id_Recursos FROM webpages_Recursos WHERE id_recursos=@0";
+        var Cn = Conn.QuerySingle(sqlText, borrarId);
+        if (Cn != null)        {
+            var deleteCommand = "DELETE FROM webpages_NombreMenu WHERE Id = @0";
+            Conn.Execute(deleteCommand, borrarId);
+            Response.Redirect("AdministracionMenus");
+        }
+        else        {
+            borrar = "El menú que selecciono no puede borrrse ya que tiene recursos asignados, eliminelos para continuar.";
+        }
+
+
+
+
+
+    }
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("SinPermiso"); }
+
+    var sqlText01 = "SELECT RoleId FROM webpages_UsersInRoles WHERE Userid=@0";
+    var C01 = Conn.QuerySingle(sqlText01, WebSecurity.CurrentUserId);
+    if (C01 != null) { RolId = Convert.ToString(C01.RoleId); }
+
+
+
+}
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Administración de menus publicables
+            <small>ABC de menús a desplegarse</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" title="Permisos a usuarios"><i class="fa  fa-map"></i>Administración de Menus</a></li>
+
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+        @if (errorMessage != "")        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+        @if (borrar != "")        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(borrar)
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-xs-12">
+
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title"><i class="fa fa-map"></i> Menu publicable </h3>
+                        <button type="button" class="btn bg-purple pull-right" onclick="javascript:Nuevo();">Nuevo</button>
+                    </div>
+                    <div class="box-body">
+                        <div class="table-responsive">
+                            <table id="PrimeroDescendente" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del menu</th>
+                                         <th>Opciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                           selectQueryString = "SELECT IconoMenu,NombreMenu,id FROM webpages_NombreMenu order by id";
+                                    }
+
+                                    @foreach (var row in Conn.Query(selectQueryString))        {
+                                        <tr>
+                                            <td><i class="@row.IconoMenu"></i>  @row.NombreMenu </td>
+                                            <td> 
+                                                <div class="btn-group">
+                                                <button type="button" class="btn btn-default">Opciones</button>
+                                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                    <span class="caret"></span>
+                                                    <span class="sr-only">Drop</span>
+                                                </button>
+                                                <ul class="dropdown-menu" role="menu">
+                                                    <li><a href="javascript:Editar(@row.id);">Editar</a></li>
+                                                    <li class="divider"></li>
+
+                                                    <li><a href="javascript:Borrar(@row.id);" data-confirm="¿Esta seguro que desea borrar el registro?">Borrar</a></li>
+                                                </ul>
+                                             </div>
+                                            
+                                            </td>
+                                       </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+   
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+
+    function Borrar(id)        {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'AdministracionMenus');
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'borrarId');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', id);
+            form.appendChild(myvar);
+            document.body.appendChild(form);
+            form.submit();
+    }
+
+    function Borrar2(id) {
+        if (confirm('¿Esta seguro que desea borrar el registro?')) {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'AdministracionMenus');
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'borrarId');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', id);
+            form.appendChild(myvar);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function Editar(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'EditarAdministracionMenus');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'Id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function Nuevo(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'EditarAdministracionMenus');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'Nuevo');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', 1);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+</script>
+

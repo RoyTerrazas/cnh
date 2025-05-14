@@ -1,0 +1,213 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Asignar Membresía";
+    var Conn = Database.Open("Dashboard");
+    var errorMessage = "";
+    var roleName = "";
+    var errormessage = false;
+    var exitomessage = false;
+    string[] userNames = new string[1];
+    string[] roleNames = new string[1];
+
+
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)
+    { Response.Redirect("SinPermiso"); }
+
+
+
+    var selectQueryString = "SELECT UserId, Email FROM UserProfile";
+
+    if (IsPost)
+    {
+
+        // Create new role
+        if (!Request["buttonCreateRole"].IsEmpty())
+        {
+            roleName = Request["textRoleName"];
+            if (!Roles.RoleExists(roleName) && !roleName.IsEmpty())
+            {
+                Roles.CreateRole(roleName);
+                exitomessage = true;
+            }
+        } // if(buttonCreateRole)
+
+        // Delete role
+        if (!Request["buttonDeleteRole"].IsEmpty())
+        {
+            roleName = Convert.ToString(Request["textRoleName"]);
+            if (Roles.GetUsersInRole(roleName).Length == 0 && !roleName.IsEmpty())// solo borra si no hay usuarios en ese rol
+            {
+                // evitar que borren el rol de sadmin y de admin
+                if (roleName == "SAdmin" || roleName == "Admin")
+                {
+                    errormessage = true;
+                }
+                else
+                {
+                    Roles.DeleteRole(roleName, true); // true means throw if any users are in this role
+                    exitomessage = true;
+                }
+
+            }
+        } // if(buttonDeleteRole)
+
+
+        // Add user to role
+        if (!Request["buttonAddUserToRole"].IsEmpty())
+        {
+            userNames[0] = Request["selectUserName"];
+            roleNames[0] = Request["selectRoleName"];
+            if (!Roles.IsUserInRole(userNames[0], roleNames[0]))
+            {
+                Roles.AddUsersToRoles(userNames, roleNames);
+                exitomessage = true;
+            }
+        } // if(buttonAddUserToRole)
+
+        // Delete user from role
+        if (!Request["buttonDeleteUserFromRole"].IsEmpty())
+        {
+            userNames[0] = Request["selectUserName"];
+            roleNames[0] = Request["selectRoleName"];
+            if (Roles.IsUserInRole(userNames[0], roleNames[0]))
+            {
+                Roles.RemoveUsersFromRoles(userNames, roleNames);
+                exitomessage = true;
+            }
+        } // if(buttonDeleteUseFromRole)
+    }
+}
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Asignar membresía y crear roles
+            <small>Asignación de membresía por dependencia</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" title="Asignacion de membresía"><i class="fa  fa-user-plus"></i>Asignación de membresía</a></li>
+
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+        @if (errorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+
+
+        <!-- COLOR PALETTE -->
+        <div class="box box-default color-palette-box">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa  fa-plus"></i> Crear roles y asignar cuentas a los mismos</h3>
+            </div>
+            <div class="box-body">
+               
+
+                    <form method="post">
+                        <!--------------------------------------------------------------------------------/span-->
+                        <div class="span9" id="content">
+                            @if (exitomessage == true)
+                            {
+                            <div class="alert alert-success">
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                <h4>¡Éxito!.</h4>
+                                La operación se ha completado con éxito
+                            </div>
+                            }
+
+                            @if (errormessage == true)
+                            {
+                            <div class="alert alert-error">
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                <h4>¡Error!.</h4>
+
+                            </div>
+                            }
+
+
+
+                            <div class="row-fluid">
+                                <div class="span6">
+                                    <!-- block -->
+                                    <div class="block">
+                                        <div class="navbar navbar-inner block-header">
+                                            <div class="muted pull-left">Asignar membresía</div>
+                                        </div>
+                                        <div class="block-content collapse in">
+                                            <div class="span12">
+                                                <fieldset>
+                                                    <label for="textRoleName"><strong> Nombre del rol:</strong></label>
+                                                    <input type="text" style="height:33px" name="textRoleName" class="textbox" /> &nbsp;
+                                                    <input type="submit" class="btn btn-primary" value="Crear rol" name="buttonCreateRole" />
+                                                    <input type="submit" class="btn btn-danger" value="Borrar rol" name="buttonDeleteRole" />
+                                                </fieldset>
+                                                <p></p>
+
+                                                <fieldset>
+                                                    <label for="selectUserName">Id usuario (Email):</label>
+                                                    <select name="selectUserName">
+                                                        @foreach (var row in Conn.Query(selectQueryString))
+                                                                {
+                                                        <option>@row.Email</option>
+                                                                }
+                                                    </select>
+                                                    <p></p>
+                                                    <label for="selectRoleName"><strong>Nombre del rol:</strong></label>
+                                                    <select name="selectRoleName">
+                                                        @foreach (var r in Roles.GetAllRoles())
+                                                                {
+                                                        <option>@r</option>
+                                                                }
+                                                    </select>
+                                                    &nbsp;
+                                                    <input type="submit" class="btn btn-primary " value="Agregar usuario al rol" name="buttonAddUserToRole" />
+                                                    <input type="submit" class="btn btn-danger" value="Borrar usuario del rol" name="buttonDeleteUserFromRole" />
+                                                    <hr>
+                                                    <input type="button" id="Cancelar" class="btn" value="Regresar" onClick="location.href = 'default' ">
+                                                </fieldset>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </form>
+
+              
+
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="box-footer">
+</div>
+        
+
+
+
+
+   
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+
+
+

@@ -1,0 +1,311 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Miembros de la Corte";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+
+    //contador de secretario
+    int contadorSecretario = 0, contadorPresidente = 0;
+    var sql0 = "select count(id) as contadorSecretario from[dbo].[TConsejeros] where secretario = 1";
+    var C0 = Conn.QuerySingle(sql0);
+    if (C0 != null) { contadorSecretario = C0.contadorSecretario; } else { contadorSecretario = 0; }
+    //contador de presidente
+    var sql1 = "select count(id) as contadorPresidente from [dbo].[TConsejeros] where presidente=1";
+    var C1 = Conn.QuerySingle(sql1);
+    if (C1 != null) { contadorPresidente = C1.contadorPresidente; } else { contadorPresidente = 0; }
+
+
+
+    string mandado = "", nombre = "", id = "", espresidente = "", essecretario = "";
+    id = Request.Form["id"];
+    string presid = "0", secret = "0",cum="",email="";
+    bool prescargado = false, secretcargado = false;
+
+
+    mandado = Request.Form["mandado"];
+    nombre = Request.Form["nombre"];
+    cum = Request.Form["cum"];
+    email = Request.Form["email"];
+    var uploadedFile = Request.Files["foto"];
+
+    espresidente = Request.Form["espresidente"];
+    essecretario = Request.Form["essecretario"];
+
+    if (espresidente == "on") { presid = "1"; } else { presid = "0"; }
+    if (essecretario == "on") { secret = "1"; } else { secret = "0"; }
+
+
+    string newFileName = "";
+    string nombreCargado = "", foto = "", RutaArchivoCarg = "", CUMCargado="",EmailCargado="";
+
+    //-------------------------  precargar   edicion
+    if (IsPost && id != "") {
+
+        var sqlText01en = "SELECT * FROM  TConsejeros WHERE Id=@0 ";
+        var C0En = Conn.QuerySingle(sqlText01en, id);
+        if (C0En != null) {
+            nombreCargado = C0En.nombre_Consejero.Trim();
+            foto = C0En.foto;
+            prescargado = C0En.presidente;
+            secretcargado = C0En.secretario;
+            CUMCargado = C0En.Cum;
+            EmailCargado = C0En.Email;
+        }
+
+    }
+
+
+    //--------------------------- edicion
+    if (IsPost && mandado == "1" && id != "") {
+
+        WebImage photo = null;
+        string imagePath = "";
+        photo = WebImage.GetImageFromRequest();
+        if (photo != null) {
+
+            //borrar el anterior
+            var sqlText01en = "SELECT * FROM  TConsejeros  WHERE Id=@0 ";
+            var C0En = Conn.QuerySingle(sqlText01en, id);
+            if (C0En != null) { RutaArchivoCarg = C0En.foto.Trim(); }
+
+            if (RutaArchivoCarg != null) {
+                if (RutaArchivoCarg != "") {
+                    var fullPath3 = Server.MapPath("~/webCNH/img/" + RutaArchivoCarg);
+                    File.Delete(fullPath3);
+                }
+            }
+
+            newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(photo.FileName);
+            imagePath = @"webcnh\img\" + newFileName;
+            photo.Resize(width: 615, height: 339, preserveAspectRatio: false, preventEnlarge: true);
+            photo.Save(@"~\" + imagePath);
+
+            if (newFileName == "") { newFileName = null; }
+            //actualizar el nuevo
+            string updateCommand1 = "UPDATE TConsejeros SET foto=@0,presidente=@1,secretario=@2,nombre_Consejero=@3,cum=@4,email=@5 WHERE Id=@6";
+            Conn.Execute(updateCommand1, newFileName,presid, secret, nombre, cum, email,id);
+            Response.Redirect("Miembros?e=1");
+
+
+        }
+        else {
+            string updateCommand1 = "UPDATE TConsejeros SET nombre_Consejero=@0,presidente=@1,secretario=@2,cum=@3,email=@4 WHERE Id=@5";
+            Conn.Execute(updateCommand1, nombre, presid, secret, cum, email, id);
+            Response.Redirect("Miembros?e=1");
+        }
+
+    }
+
+
+
+
+    //--------------------------- nuevo
+    if (IsPost && mandado == "1") {
+
+
+        var sqlText01en = "SELECT * FROM  TConsejeros WHERE nombre_Consejero='@0 '";
+        var C0En = Conn.QuerySingle(sqlText01en, nombre);
+        if (C0En == null) {
+
+            WebImage photo = null;
+            string imagePath = "";
+            photo = WebImage.GetImageFromRequest();
+            if (photo != null) {
+                newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(photo.FileName);
+                imagePath = @"webcnh\img\" + newFileName;
+                photo.Resize(width: 615, height: 339, preserveAspectRatio: false, preventEnlarge: true);
+                photo.Save(@"~\" + imagePath);
+
+
+                var insertCommand = "INSERT INTO TConsejeros (nombre_Consejero,ver,foto,presidente,secretario,cum,email) Values(@0,@1,@2,@3,@4,@5,@6)";
+                Conn.Execute(insertCommand, nombre.ToUpper().Trim(), 1, newFileName, presid, secret,cum,email);
+                Response.Redirect("Miembros?e=1");
+
+            }
+            else {
+                var insertCommand2 = "INSERT INTO TConsejeros (nombre_Consejero,presidente,secretario,cum,email) Values(@0,@1,@2,@3,@4)";
+                Conn.Execute(insertCommand2, nombre.ToUpper().Trim(), presid, secret,cum,email);
+                Response.Redirect("Miembros?e=1");
+            }
+
+
+
+        }
+
+
+    }
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Miembros de la Corte <small> Administración de miembros</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Administración de actas de la CNH"> @if (id != null) {@Html.Raw("Editar"); } else {@Html.Raw("Nuevo");
+            } Miembros de la corte</a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+
+
+
+                <div class="box ">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">@if (id != null) {@Html.Raw("EDITAR"); } else { @Html.Raw("NUEVO")}  Miembros de la CNH</h3>
+                    </div>
+                    <!-- /.box-header -->
+                    <!-- form start -->
+                    <form role="form" name="forma" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="mandado" value="1" />
+                        <input type="hidden" name="id" value="@id" />
+
+
+                        <div class="box-body">
+
+                            <div class="row">
+
+                                <div class="col-sm-5">
+                                    <div class="form-group">
+                                        <label for="exampleTxt">*Nombre del miembro de la corte:</label>
+                                        <input type="text" maxlength="100" autofocus value="@nombreCargado" required class="form-control" id="nombre" name="nombre" placeholder="Nombre completo del miembro de la corte">
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <label for="exampleTxt">*CUM:</label>
+                                        <input type="text" maxlength="10" value="@CUMCargado" required class="form-control" id="cum" name="cum" placeholder="CUM">
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-5">
+                                    <div class="form-group">
+                                        <label for="exampleTxt">*Email:</label>
+                                        <input type="text" maxlength="200" value="@EmailCargado" required class="form-control" id="email" name="email" placeholder="Email">
+                                    </div>
+
+                                </div>
+
+
+
+
+                                </div>
+
+
+
+
+                        
+                                <div class="form-group">
+
+
+                                    @{
+                                        int IdPres = 0, IdSec=0;
+                                        //checar si la persona activa es la que es presidente o secretario para poder deshabiliratlo
+
+                                        var sqlr= "select * from [dbo].[TConsejeros] where presidente=1";
+                                        var Csqlr = Conn.QuerySingle(sqlr);
+                                        if (Csqlr != null) { IdPres = Csqlr.id;  }
+
+                                        var sqlr1 = "select * from [dbo].[TConsejeros] where secretario=1";
+                                        var Csqlr1 = Conn.QuerySingle(sqlr1);
+                                        if (Csqlr1 != null) { IdSec = Csqlr1.id; }
+
+
+                                    }
+
+                                    <label for="exampleTxt">¿Es el Presidente de la Corte?:  </label>
+
+                                    @if (contadorPresidente == 1)              {
+
+                                        if (IdPres == Convert.ToInt32(id))   {  <input type="checkbox" name="espresidente" @if (prescargado == true) { @Html.Raw("checked")   ; }  /> <small>(Ya hay un presidente)</small>    }
+                                        else                                        {
+                                            <input type="checkbox" name="espresidente" @if (prescargado == true) { @Html.Raw("checked")  ; } disabled /> <small>(Ya hay un presidente)</small>
+                                            <input type="hidden" name="espresidente" value="0" />
+                                        }
+
+                                    }
+                                    else     { <input type="checkbox" name="espresidente" @if (prescargado == true) { @Html.Raw("checked") ; } />          }
+                            
+
+
+                                    <label for="exampleTxt">¿Es el secretario de la Corte?: </label>
+                                    @if (contadorSecretario == 1)                                    {
+                                        if (IdSec == Convert.ToInt32(id))   {       <input type="checkbox" name="essecretario" @if (secretcargado == true) { @Html.Raw("checked")  ; }  />    <small>(Ya hay un secretario)</small>      }
+                                        else                  {
+                                            <input type="checkbox" name="essecretario" @if (secretcargado == true) { @Html.Raw("checked") ; } disabled />    <small>(Ya hay un secretario)</small>
+                                            <input type="hidden" name="essecretario" value="0" />
+                                        }
+
+                                    }
+                                    else   {      <input type="checkbox" name="essecretario" @if (secretcargado == true) { @Html.Raw("checked")    ; } />        }
+                          
+
+
+
+
+
+
+
+
+
+                                </div>
+                        
+
+
+                       
+                                <div class="form-group">
+                                    <label for="exampleInputFile">Foto: <font color="purple">@foto</font></label>
+                                    <input type="file" maxlength="150" id="Image" name="Image" accept="image/x-png,image/jpeg">
+                                    <p class="help-block">El tamaño del archivo debe ser de 615 x 339 pixeles en formato jpg o png. El archivo sera cambiado de dimensiones automáticamente.</p>
+                                </div>
+                     
+
+
+                            </div>
+                        <!-- /.box-body -->
+                        <div class="box-footer">
+                            <button type="submit" class="btn pull-right">Enviar</button>
+                            <input type="button" id="Cancelar" class="btn" value="Regresar" onClick="location.href = 'Miembros' ">
+                        </div>
+                    </form>
+                </div>
+
+
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

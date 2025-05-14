@@ -1,0 +1,618 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Administración de trámites CNH";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+
+    int Rol_activo = 0;
+    var sqlTexto0 = "SELECT RoleId from webpages_UsersInRoles WHERE UserId=" + WebSecurity.CurrentUserId;
+    var C000 = Conn.QuerySingle(sqlTexto0);
+    if (C000 != null) { Rol_activo = C000.RoleId; }
+
+
+    //-----------------------------------------------------------------------------
+    //revisar el mes actual y el año actual
+    int AnnoActual = 0, MesActual = 0;
+    string AnnoActuall = "", MesActuall = "", alertaMessage = "", id = "", id_folio = "", Mensaje = "", rutaa = "";
+    AnnoActual = DateTime.Today.Year;
+    MesActual = DateTime.Today.Month;
+
+
+    AnnoActuall = Request.Form["anno"];
+    MesActuall = Request.Form["mes"];
+    if (AnnoActuall == null) { AnnoActuall = Convert.ToString(DateTime.Today.Year); }
+    if (AnnoActuall == "") { AnnoActuall = Convert.ToString(DateTime.Today.Year); }
+
+
+
+    if (MesActuall == null) { MesActuall = Convert.ToString(DateTime.Today.Month); }
+
+
+    //definir el estatus inicial
+    string status = "6", statuss = "";
+    statuss = Request.Form["status"];
+    if (Request["status"] == "") { status = "6"; } else { status = Request["status"]; }
+    if (Request["status"] == null) { status = "6"; } else { status = Request["status"]; }
+
+
+
+
+    //--------------borrar la solicitud----------------------------------------------------------------
+    string borrado = "", f1 = "", f2 = "", f3 = "";
+    borrado = Request.Form["borrado"];
+    id = Request.Form["id"];
+    if (IsPost && borrado == "1")    {
+        //borrar archivos subidos por la persona
+        string arch1 = "", arch2 = "", arch3 = "";
+        rutaa = Server.MapPath("/WebCNH/Arch_Subidos/");
+        string sqlTexto = "select * from TSolicitudTramite where id=@0";
+        var Con = Conn.QuerySingle(sqlTexto, id);
+        if (Con != null)       {
+            arch1 = Con.RutaArchivo1;
+            arch2 = Con.RutaArchivo2;
+            arch3 = Con.RutaArchivo3;
+            f1 = rutaa + "/" + arch1;
+            f2 = rutaa + "/" + arch2;
+            f3 = rutaa + "/" + arch3;
+            if (arch1 != null) { File.Delete(f1); }
+            if (arch2 != null) { File.Delete(f2); }
+            if (arch3 != null) { File.Delete(f3); }
+        }
+
+
+        //borrar el repositorio
+        string rutan = "";
+        rutan = Server.MapPath("/protected/repositorioarchivos/" + id + "/");
+        bool directoryExists = Directory.Exists(rutan);
+        if (directoryExists == true)        {
+            //contamos la cantidad de archivos de la carpeta
+            int fCount = Directory.GetFiles(rutan, "*", SearchOption.TopDirectoryOnly).Length;
+            if (fCount > 0)       {
+                //se borran todos los archivos de la carpeta
+                string[] files = Directory.GetFiles(rutan);
+                foreach (string file in files) { File.Delete(file); }
+
+                //se borra el directorio
+                if (Directory.GetFileSystemEntries(rutan).Length == 0) { Directory.Delete(rutan); }
+            }
+        }
+    
+
+
+        //quitar la entrada a la tabla
+        var deleteCommand = "DELETE FROM TSolicitudTramite where id=@0";
+        Conn.Execute(deleteCommand, id);
+
+
+
+
+
+        Mensaje = "Se ha borrado la solicitud, sus archivos anexos y el repositorio";
+    }
+
+
+
+
+    //..............borrado de repositorio..................................
+
+    string ruta = "";
+    if (Request.Form["borrarrepositorio"] != null && IsPost)    {
+        id_folio = Request.Form["id_folio"];
+        ruta = Server.MapPath("/protected/repositorioarchivos/" + id_folio + "/");
+
+        bool directoryExists = Directory.Exists(ruta);
+        if (directoryExists == true)       {
+            //contamos la cantidad de archivos de la carpeta
+            int fCount = Directory.GetFiles(ruta, "*", SearchOption.TopDirectoryOnly).Length;
+            if (fCount>0) {
+                //se borran todos los archivos de la carpeta
+                string[] files = Directory.GetFiles(ruta);
+                foreach (string file in files)   { File.Delete(file); }
+
+                //se borra el directorio
+                if (Directory.GetFileSystemEntries(ruta).Length == 0)    {  Directory.Delete(ruta);  }
+            }
+            Mensaje = "Los archivos del repositorio han sido borrados";
+        }
+        else { Mensaje = "El repositorio no existía, no se borro ningún archivo."; }
+    }
+
+
+}
+
+
+<form name="forma" id="forma" method="post" action="adminsolicitudes">
+        <input type="hidden" value="1" name="enviado" />
+        <div class="content-wrapper">
+        <section class="content-header">
+            <h1> Administración de solicitudes de trámite <small> Corte Nacional de Honor </small> </h1>
+
+            <ol class="breadcrumb"> 
+                <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li> 
+                <li class="active">Admin. del trámite</li>
+             </ol>
+     
+        </section>
+        <section class="content">
+            @if (Mensaje!="") {
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h4><i class="icon fa fa-check"></i> Aviso</h4>
+                @Mensaje
+            </div>
+            }
+
+             <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Menú de administración de solicitudes</h3>
+                </div>
+           
+                <div class="box-body">
+
+        
+
+
+                <div class="row">
+
+               
+
+                    <div class="col-sm-4"> </div>
+
+                        <div class="col-sm-4">
+                            <div class="col-sm-5">
+                                <div class="form-group">
+                                    <label>ESTATUS: </label>
+                                    <select class="form-control" name="status" onchange="Javascript:Mandar2();">
+                                        <option value="0" @if (Convert.ToInt16(status) == 0) { @Html.Raw("selected")  ; }>TODOS</option>
+                                        @{
+                                        string selectQueryString0 = "select id,descrip from CEstatusTramite order by Descrip";
+                                        }
+                                        @foreach (var rowD in Conn.Query(selectQueryString0))                                    {
+                                            <option value="@rowD.id" @if (rowD.id==Convert.ToInt16(status)) { @Html.Raw("selected") ; }>@rowD.Descrip.ToUpper()</option>
+                                    }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    <div class="col-sm-4">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>MES: </label>
+                                    <select class="form-control" name="mes" onchange="javascript:Mandar2();">
+                                        <option value="0" @if(MesActuall == "0"){ @Html.Raw("selected") ;}>TODOS</option>
+                                        <option value="1" @if(MesActuall == "1"){ @Html.Raw("selected") ;}>ENERO</option>
+                                        <option value="2" @if(MesActuall == "2"){ @Html.Raw("selected") ;}>FEBRERO</option>
+                                        <option value="3" @if(MesActuall == "3"){ @Html.Raw("selected") ;}>MARZO</option>
+                                        <option value="4" @if(MesActuall == "4"){ @Html.Raw("selected") ;}>ABRIL</option>
+                                        <option value="5" @if(MesActuall == "5"){ @Html.Raw("selected") ;}>MAYO</option>
+                                        <option value="6" @if(MesActuall == "6"){ @Html.Raw("selected") ;}>JUNIO</option>
+                                        <option value="7" @if(MesActuall == "7"){ @Html.Raw("selected") ;}>JULIO</option>
+                                        <option value="8" @if(MesActuall == "8"){ @Html.Raw("selected") ;}>AGOSTO</option>
+                                        <option value="9" @if(MesActuall == "9"){ @Html.Raw("selected") ;}>SEPTIEMBRE</option>
+                                        <option value="10" @if(MesActuall == "10"){ @Html.Raw("selected") ;}>OCTUBRE</option>
+                                        <option value="11" @if(MesActuall == "11"){ @Html.Raw("selected") ;}>NOVIEMBRE</option>
+                                        <option value="12" @if(MesActuall == "12"){ @Html.Raw("selected") ;}>DICIEMBRE</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>AÑO: </label>
+                                <select class="form-control" name="anno" onchange="javascript:Mandar2();">
+                                    <option value="0" @if(AnnoActuall=="0"){ @Html.Raw("selected") ;}>TODOS</option>
+                                    <option value="2020" @if(AnnoActuall=="2020"){ @Html.Raw("selected") ;}>2020</option>
+                                    <option value="2021" @if(AnnoActuall=="2021"){ @Html.Raw("selected") ;}>2021</option>
+                                    <option value="2022" @if(AnnoActuall=="2022"){ @Html.Raw("selected") ;}>2022</option>
+                                    <option value="2023" @if(AnnoActuall=="2023"){ @Html.Raw("selected") ;}>2023</option>
+                                    <option value="2024" @if(AnnoActuall=="2024"){ @Html.Raw("selected") ;}>2024</option>
+                                    <option value="2025" @if(AnnoActuall=="2025"){ @Html.Raw("selected") ;}>2025</option>
+                                    <option value="2026" @if(AnnoActuall=="2026"){ @Html.Raw("selected") ;}>2026</option>
+                                    <option value="2027" @if(AnnoActuall=="2027"){ @Html.Raw("selected") ;}>2027</option>
+                                    <option value="2028" @if(AnnoActuall=="2028"){ @Html.Raw("selected") ;}>2028</option>
+                                    <option value="2029" @if(AnnoActuall=="2029"){ @Html.Raw("selected") ;}>2029</option>
+                                    <option value="2030" @if(AnnoActuall=="2030"){ @Html.Raw("selected") ;}>2030</option>
+                                </select>
+                            </div>
+                            </div>
+                    </div>
+            
+                </div>
+                <div class="table-responsive">
+                    <br />
+                    <table id="example1" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th><center>FOLIO:</center> </th>
+                                <th>RESÚMEN:</th>
+                                <th>INTERPONE:</th>
+                                <th>NIVEL:</th>
+                                <th>ASIGNADO A:</th>
+                                <th>CUM:</th>
+                                <th>PROVINCIA:</th>
+                                <th>FECHA:</th>
+                                <th>TIPO:</th>
+                                <th>ESTATUS:</th>
+                                <th>TIEMPO:</th>
+
+                                <th width="140">OPCIONES:</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                         
+                            @{
+                                //filtrado segun lo que escoja el usuario   FILTROS
+                                string selectQueryString = "";
+                                if (Convert.ToInt16(AnnoActuall) == 0 && Convert.ToInt16(MesActuall) == 0 && Convert.ToInt16(status) == 0)                                {
+                                    //  @Html.Raw("1");
+                                    selectQueryString = "select * from VSolicitudTramite order by fecha desc";
+                                }
+                                else                                {
+                                    if (Convert.ToInt16(AnnoActuall) == 0 && Convert.ToInt16(MesActuall) == 0)                                    {
+                                        //   @Html.Raw("2");
+                                        selectQueryString = "select * from VSolicitudTramite where estatus='" + status + "' order by fecha desc";
+                                    }
+                                    else                                    {
+                                        if (Convert.ToInt16(AnnoActuall) == 0 && Convert.ToInt16(status) == 0)                                        {
+                                            //    @Html.Raw("3");
+                                            selectQueryString = "select * from VSolicitudTramite where month(fecha)='" + MesActuall + "'  order by fecha desc";
+                                        }
+                                        else                                        {
+                                            if (Convert.ToInt16(status) == 0 && Convert.ToInt16(MesActuall) == 0)                                            {
+                                                //   @Html.Raw("4");
+                                                selectQueryString = "select * from VSolicitudTramite where year(fecha)='" + AnnoActuall + "' order by fecha desc";
+                                            }
+                                            else                                            {
+                                                if (AnnoActuall == "0")                                                {
+                                                    //  @Html.Raw("5");
+                                                    selectQueryString = "select * from VSolicitudTramite where estatus='" + status + "' and month(fecha)='" + MesActuall + "' order by fecha desc";
+                                                }
+                                                else                                                {
+                                                    if (MesActuall == "0")                                                    {
+                                                        //      @Html.Raw("6");
+                                                        selectQueryString = "select * from VSolicitudTramite where estatus='" + status + "' and year(fecha)='" + AnnoActuall + "' order by fecha desc";
+                                                    }
+                                                    else                                                    {
+                                                        if (status == "0")                                                        {
+                                                            //    @Html.Raw("7 ");
+                                                            //  @Html.Raw(MesActuall);
+                                                            // @Html.Raw(" ");
+                                                            //  @Html.Raw(AnnoActuall);
+                                                            selectQueryString = "select * from VSolicitudTramite where month(fecha)='"+ MesActuall + "' and year(fecha)='" + AnnoActuall + "' order by fecha desc";
+                                                        }
+                                                        else                                                        {
+                                                            //   @Html.Raw("8");
+
+                                                            selectQueryString = "select * from VSolicitudTramite where estatus='"+ status + "' and month(fecha)='" + MesActuall + "' and year(fecha)='" + AnnoActuall + "' order by fecha desc";
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                }
+
+                            }
+
+
+                            @foreach (var row in Conn.Query(selectQueryString))
+                            {
+                                <tr>
+                                    <td><center>@row.id</center></td>
+                                    <td>
+                                        <SMALL>
+                                            @if (row.resumen != null || row.resumen != "")
+                                            {@HttpUtility.HtmlDecode(Functions.CortaCadena(row.resumen.ToUpper(), 30)).ToUpper();
+                                        }
+                                        else
+                                        { @Html.Raw("SIN RESUMEN");
+                                    }
+                                        </SMALL>
+                                    </td>
+
+
+                                    <td><SMALL>@row.Nombre.ToUpper()</SMALL></td>
+                                    <td>
+                                        @if (row.nivel == 1)
+                                        {@Html.Raw("GRUPO");
+                                    }
+                                    else
+                                    {
+                                        if (row.nivel == 3)
+                                        {@Html.Raw("PROVINCIA");
+                                    }
+                                    else
+                                    {
+                                        if (row.nivel == 4)
+                                        {@Html.Raw("NACIONAL");
+                                    }
+                                    else
+                                    {@Html.Raw("NO DEFINIDO");
+                                }
+                            }
+                        }
+
+
+                                    </td>
+                                    <td>
+                                        <SMALL>
+                                            @if (row.asignado == 0)
+                                            {@Html.Raw("NO ASIGNADO");
+                                        }
+                                        else
+                                        {
+
+                                            var sqlTextn = "select * from VConsejeroAsignado where IdTSolicitudTramite=@0";
+                                            var C0n = Conn.QuerySingle(sqlTextn, row.id);
+                                            if (C0n != null)
+                                            {
+                                                if (C0n.nombre_consejero != "")
+                                                { @Html.Raw(Functions.CortaCadena(C0n.nombre_consejero.ToUpper(), 25));
+                                            }
+                                            else
+                                            {@Html.Raw("NO ASIGNADO");
+                                        }
+                                    }
+                                    else
+                                    {@Html.Raw("<font color=red><strong>NO ASIGNADO</strong></font>");
+                                }
+
+                            }
+                                        </SMALL>
+                                    </td>
+                                    <td><SMALL>@row.cum.ToUpper()</SMALL></td>
+                                    <td><SMALL>@row.Nombre_provincia</SMALL></td>
+                                    <td><SMALL>@Functions.formatofechaCorta(row.fecha)</SMALL></td>
+                                    <td><SMALL>@row.descrip_tipo_caso.ToUpper()</SMALL></td>
+
+
+
+                                    <td>
+                                        <SMALL>
+                                            @if (row.Descrip.ToUpper().Trim() == "MANDADO")
+                                            {<font color="red">
+                                                    <strong>
+                                                        @if (row.Descrip != "" || row.Descrip != null)
+                                                        {@row.Descrip.ToUpper()}
+                                                    </strong>
+                                                </font> }
+                                            else
+                                            {
+                                                if (row.Descrip != "" || row.Descrip != null)
+                                                {@row.Descrip.ToUpper()}
+                                        }
+                                        </SMALL>
+                                    </td>
+
+
+                                    <td>
+                                        <SMALL>
+                                            @{
+                                                var sqlTextnx = "SELECT DateDiff(\"d\",fecha,fechaCierre) AS DiasDiferencia FROM TSolicitudTramite where id=@0";
+                                                var C0nx = Conn.QuerySingle(sqlTextnx, row.id);
+                                                if (C0nx != null)
+                                                {
+                                                    @C0nx.DiasDiferencia
+                                                }
+                                                else
+                                                {@Html.Raw("Sin datos");
+                                            }
+                                            }
+                                        </SMALL>
+                                    </td>
+
+                                    <td>
+
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-default" onclick="abrirNuevo('@row.id','@status');">Visualizar </button>
+                                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                <span class="caret"></span>
+                                                <span class="sr-only">Desplegar</span>
+                                            </button>
+
+                                            @{ if (Rol_activo == 1 || Rol_activo == 2)
+                                                {
+                                                    <ul class="dropdown-menu" role="menu">
+                                                        <li><a href="javascript:Mandar('@row.id','@status')" target="_self" title="Quien vio este documento">Quien vio</a></li>
+                                                        <li class="divider"></li>
+                                                        <li><a href="javascript:SubirArchivos('@row.id','@status')" target="_self" title="Subir Archivos extra">Repositorio</a></li>
+                                                        <li class="divider"></li>
+                                                        <li><a href="javascript:BorrarTodosLosArchivos('@row.id','@status')" data-confirm="¿Desea borrar los archivos de la solicitud permanentemente?">Borrar repositorio</a></li>
+                                                        <li class="divider"></li>
+                                                        <li><a href="javascript:Borrar('@row.id','@status')" data-confirm="¿Desea borrar la solicitud y sus archivos permanentemente?">Borrar solicitud</a></li>
+
+                                                    </ul>
+                                                }
+                                            }
+                                        </div>
+
+                                    </td>
+                                </tr>
+
+                                            }
+
+
+
+                        </tbody>
+
+                    </table>
+                </div>
+               </div>
+           </div>
+       </section>
+        </div>
+</form>
+
+
+
+
+
+<script type="text/javascript">
+    function SubirArchivos(id,stat) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'SubirArchivos');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id_folio');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar3 = document.createElement('input');
+        myvar3.setAttribute('name', 'status');
+        myvar3.setAttribute('type', 'hidden');
+        myvar3.setAttribute('value', stat);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar3);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+<script type="text/javascript">
+    function BorrarTodosLosArchivos(id,stat) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'adminsolicitudes');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id_folio');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'borrarrepositorio');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', 1);
+
+        myvar3 = document.createElement('input');
+        myvar3.setAttribute('name', 'status');
+        myvar3.setAttribute('type', 'hidden');
+        myvar3.setAttribute('value', stat);
+
+
+        form.appendChild(myvar);        
+        form.appendChild(myvar2);
+        form.appendChild(myvar3);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+
+
+<script type="text/javascript">
+    function Mandar(id,stat) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'quien_vio');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id_folio');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'status');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', stat);
+
+
+        form.appendChild(myvar);
+        form.appendChild(myvar2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+
+<script>
+function Abrir(i) {
+    location.replace("VerSolicitud?id="+i);
+}
+</script>
+
+
+<script type="text/javascript">
+function Mandar2(){
+  document.forma.submit();
+}
+</script>
+
+<script type="text/javascript">
+    function Borrar(id,stat) {
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'AdminSolicitudes');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'borrado');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', 1);
+
+        
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'status');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', stat);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        form.appendChild(myvar2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script type="text/javascript">
+    function abrirNuevo(id,stat) {
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'VerSolicitud');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'status');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', stat);
+
+        myvar3 = document.createElement('input');
+        myvar3.setAttribute('name', 'entre');
+        myvar3.setAttribute('type', 'hidden');
+        myvar3.setAttribute('value', 1);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar2);
+        form.appendChild(myvar3);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

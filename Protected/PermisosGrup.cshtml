@@ -1,0 +1,139 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Permisos a Grupos";
+    var Conn = Database.Open("Dashboard");
+    var RoleId = Request.QueryString["RoleId"];
+    var errorMessage = "";
+    var alertaMessage = "";
+    var NombreGrupo = "";
+
+    if (Request.QueryString["RoleId"] != "" || !Request.QueryString["RoleId"].IsEmpty())    {
+        var sqlText = "SELECT * from webpages_Roles WHERE RoleId=@0";
+        var C0 = Conn.QuerySingle(sqlText, RoleId);
+        if (C0 != null)        {
+            NombreGrupo = C0.RoleName;
+        }
+    }
+    else { errorMessage = "Se requiere de un Id para continuar"; }
+
+   string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+   if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false){ Response.Redirect("sinpermiso");}
+
+    if (IsPost)    {
+        var concatenar = "";
+        var opcion = "";
+        var identGrupoActual = 0;
+        var selectQueryString3 = "";
+        selectQueryString3 = "SELECT * FROM webpages_Recursos ORDER BY Descripcion";
+        foreach (var row2 in Conn.Query(selectQueryString3))        {
+            concatenar = Convert.ToString("Opcion_" + row2.Id_Recursos);
+            opcion = Convert.ToString(Request.Form[concatenar]);
+            identGrupoActual = row2.Id_Recursos;
+
+            if (opcion == "S")            {
+                var sqlTexto = "SELECT * FROM webpages_AccesoRecursosPorGrupo  WHERE Id_webpages_Recursos=@0 and Id_Roles=@1";
+                var C1 = Conn.QuerySingle(sqlTexto, identGrupoActual, RoleId);
+                if (C1 == null)                { // esto evita que se inserten mas d euna vez en la bd
+                    var insertCommand = "INSERT INTO webpages_AccesoRecursosPorGrupo (Id_webpages_Recursos, Id_Roles) Values(@0, @1)";
+                    Conn.Execute(insertCommand, identGrupoActual, RoleId);
+                    alertaMessage = "Se han actualizado sus datos";
+                }
+
+            }
+            else            { // aqui entra cuando no esta checado por lo que lo borra
+                var deleteCommand2 = "DELETE FROM webpages_AccesoRecursosPorGrupo WHERE Id_Roles=" + RoleId + " and Id_webpages_Recursos=" + identGrupoActual;
+                // @Html.Raw(deleteCommand2);
+                Conn.Execute(deleteCommand2);
+                alertaMessage = "Se han actualizado sus datos";
+            }
+        }// del for
+    }// is post
+}
+
+<div class="content-wrapper">
+
+    <section class="content-header">
+        <h1>
+            Permisos a Grupos 
+            <small>Asignación de privilegios de acceso a grupos</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="PermisosGrupos" title="Permisos a Grupos"><i class="fa fa-users"></i>Permisos a Grupos</a></li>
+            <li class="active"><a href="#" title="Permisos a Grupos"><i class="fa fa-unlock"></i>Permisos a Grupos Detallado</a></li>
+
+        </ol>
+    </section>
+
+    <section class="content">
+        @if (RoleId=="" || RoleId==null)       {
+            <div class="span9" id="content">
+                <div class="alert alert-error alert-block">
+                    <a class="close" data-dismiss="alert" href="Inicio">&times;</a>
+                    <h4 class="alert-heading">Error!</h4>
+                    Se requiere de un ID de recurso <a href="Inicio" title="Regresar">Regrese.</a>
+                </div>
+            </div>
+        }
+
+        <!----------------------------------------------------------------------------------------------------------->
+        <p>
+            @if (errorMessage != "")            {
+                <div class="alert alert-error">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4>ERROR.</h4>
+                    @Html.Raw(errorMessage)
+                </div>
+            }
+
+            @if (alertaMessage != "")            {
+                <div class="alert alert-success">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4>¡Éxito!</h4>
+                    @Html.Raw(alertaMessage)
+                </div>
+            }
+        </p>   
+        <div class="box box-default color-palette-box">
+            <div class="box-header with-border"> <h3 class="box-title"><i class="fa fa-group"></i> Permisos del grupo: </h3> </div>
+                <div class="box-body">
+                    <form class="form-horizontal" method="post">
+                        <input type="hidden" value="@RoleId" name="RoleId">
+                   
+                        <fieldset>
+                            <legend>Nombre del grupo:<strong>  @NombreGrupo</strong></legend>
+                            <div class="control-group">
+                                @{     var selectQueryString = "";
+                                       selectQueryString = "SELECT * FROM webpages_Recursos ORDER BY Descripcion";
+                                 }
+                                @foreach (var row in Conn.Query(selectQueryString))     {
+                                    var opcionn = "Opcion_" + row.Id_Recursos;
+                                    //   var opcionn=row.Id_Recursos;
+                                    <div class="controls">
+                                        <input type="checkbox" name="@opcionn" id="@opcionn" value="S"
+                                               @{ var sqlText33 = "SELECT * FROM webpages_AccesoRecursosPorGrupo WHERE Id_Roles=@0 and Id_webpages_Recursos=@1";  var C1 = Conn.QuerySingle(sqlText33, RoleId, row.Id_Recursos); if (C1 != null) { @Html.Raw("checked") }    }> @row.Descripcion
+                                    </div>
+
+                                 }
+                            </div>
+                            <p></p>
+                            <div class="form-actions">
+                                <div class="text-right">
+                                    <input type="button" id="Cancelar" class="btn" title="Cancelar" value="Cancelar" onClick="location.href = 'PermisosGrupos' ">
+                                    <button type="submit" class="btn bg-purple" title="Enviar" >Enviar</button>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </form>
+               </div>
+            <div class="box-footer">  Todas las personas que son miembros de este grupo tendran acceso a los recursos seleccionados.  </div>
+        </div>
+ 
+    </section>
+</div>
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+
+}

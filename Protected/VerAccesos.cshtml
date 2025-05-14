@@ -1,0 +1,93 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Ver accesos al sistema";
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Accesos al sistema<small> visualización de accesos al sistema</small> </h1>
+        <ol class="breadcrumb"> 
+            
+            <li><a href="default"><i class="fa fa-dashboard"></i>Inicio</a></li> 
+            <li class="active"><a href="#" title=""><i class="fa fa-male"></i> Accesos al sistema  </a></li>
+        
+        </ol>
+
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title">Registros del ultimo acceso de las cuentas del sistema</h3>
+                    </div>
+                       <div class="box-body">
+                        <div class="table-responsive">
+                            <table id="example1" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Cuenta</th>
+                                        <th>Fecha ingreso</th>
+                                        <th>Ip</th>
+                                        <th>Nombre PC</th>
+                                   
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                    @{ var SelectStatus = "SELECT * FROM TUltimoIngresoAlSistema order by fecha_ultimo_ingreso";}
+                                    @foreach (var row in Conn.Query(SelectStatus))
+                                        {
+                                            <tr>
+                                                <td><strong>
+                                                    @{var sqlTextonOracle = "select * from UserProfile where userid=@0";
+                                                        var C1nOra = Conn.QuerySingle(sqlTextonOracle, row.Id_UserProfile);
+                                                        if (C1nOra != null)  { @C1nOra.email; }
+                                                    }
+                                                </strong></td>
+                                                <td>@row.fecha_ultimo_ingreso</td>
+                                                <td>@row.Ip_donde_ingreso</td>
+                                                <td>@row.Nombre_computadora</td>
+                                            </tr>
+                                        }
+
+</tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>Cuenta</th>
+                                        <th>Fecha ingreso</th>
+                                        <th>Ip</th>
+                                        <th>Nombre PC</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+            
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}

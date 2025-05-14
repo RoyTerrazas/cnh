@@ -1,0 +1,177 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Inicio";
+    var Conn = Database.Open("Dashboard");
+    string errorMessage = "";
+    var anno = 0;
+    var mes = 0;
+    var dia = 0;
+    var fecha_formateada = "";
+
+
+    // script de seguridad
+  Functions.SeguridadAccesoRecursos(Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path)));
+}
+
+
+
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Notificaciones
+            <small>Menú de notificaciones</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li class="active"><a href="#" title=""><i class="fa fa-info"></i>Notificaciones</a></li>
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+
+        @if (errorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+
+
+        <div class="box">
+            <div class="box-header">
+                <h3 class="box-title"> <i class="fa  fa-info"></i> Menú de Notificaciones</h3>
+                <div class="box-tools pull-right">
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                 
+                </div>
+            </div>
+            <div class="box-body">
+                <div class="table-responsive">
+                    <table id="notificaciones" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Título</th>
+                                <th>Estatus</th>
+                                <th>Ver notificación</th>
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                           
+                                var selectQueryString = "SELECT * FROM TNotificaciones ORDER BY fecha_notificacion desc";
+                                foreach (var row in Conn.Query(selectQueryString))
+                                {
+                                    anno = row.fecha_notificacion.Year;
+                                    mes = row.fecha_notificacion.Month;
+                                    dia = row.fecha_notificacion.Day;
+                                    fecha_formateada = dia + " DE " + @Functions.MesTraduccion(mes).ToUpper() + " DE " + anno;
+                                    <tr>
+                                        <td>@fecha_formateada</td>
+                                        <td> @row.titulo_notificacion.ToUpper()...</td>
+                                        <td>
+                                            @{
+                                                var leido = false;
+                                              
+                                                var sqlText00 = "SELECT * FROM TNotificaciones_leidas WHERE id_Tnotificaciones=@0";
+                                                var C00 = Conn.QuerySingle(sqlText00, row.id_notificaciones);
+                                                if (C00 != null)
+                                                {
+                                                    leido = Convert.ToBoolean(C00.leido);
+                                                }
+                                       
+                                                if (leido == true)
+                                                {@Html.Raw("<font color=green>Leido</font>")}
+                                                else
+                                                {@Html.Raw("<font color=red>No Leido</font>")}
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="col-md-8">
+                                                <input type="button" id="ver" class="btn btn-block bg-purple" value="Leer" onClick="hola(@row.id_notificaciones)">
+                                          
+                                            </div>
+                                        </td>
+                                    </tr>
+                                                }
+                                          
+                            }
+                        </tbody>
+                        <tfoot></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+
+    </section>
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+
+    function hola(id) { 
+
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', '/protected/Notificaciones');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+
+    function Notificacion(id) { 
+        alert("entre"+id);
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', '/protected/Notificaciones');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script>
+      $(function () {
+// cambiar el orden de sortable de la tabla
+        $('#notificaciones').DataTable({
+          "paging": true,
+          "lengthChange": false,
+          "searching": false,
+          "ordering": true,
+		  "order": [[ 0, "desc" ]],
+          "info": true,
+          "autoWidth": false
+        });
+      });
+</script>
+
+
+
+

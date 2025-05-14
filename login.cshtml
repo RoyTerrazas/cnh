@@ -1,0 +1,221 @@
+﻿@section Scripts {
+    <script src="Scripts/jquery.validate.min.js"></script>
+    <script src="Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+@{
+    var Conn = Database.Open("Dashboard");
+    string mensajerror = "", blocked="";
+    var errorMessage = "";
+    var username = "";
+    var password = "";
+    var rememberMe = false;
+    var sentE = Convert.ToString(Request.QueryString["sentE"]);
+    // cuando llegue del popup de logout session
+    var sessionout = Convert.ToString(Request.QueryString["session"]);
+    var loggedout = Convert.ToString(Request.QueryString["loggedout"]);
+    mensajerror = Request.QueryString["errorMod"];
+    if (Request["blocked"] == "1")  {errorMessage = "Su cuenta  se bloqueo  debido a los intentos fallidos, favor de esperar 1 minuto."; }
+    if (Request["sesion"] == "timeout") {errorMessage = "Su sesión expiró, favor de acceder de nuevo.";}
+    if (blocked=="1") { errorMessage = "Su cuenta ha sido blockeada por 15 minutos."; }
+    if (mensajerror=="1") { errorMessage = "No se ha autentificado."; }
+    if (sentE == "true") { errorMessage = "Se ha enviado un correo con instrucciones a su cuenta registrada.";  }
+    if (sessionout == "out") {Response.Redirect("~/account/logout?loggedout=true");}
+    if (loggedout == "true") {  errorMessage = "Su sesion ha terminado, entre de nuevo"; }
+    Validation.RequireField("username", "Debe especificar un usuario.");
+    Validation.RequireField("password", "Debe especificar una contraseña.");
+    Validation.Add("password", Validator.StringLength(maxLength: Int32.MaxValue,minLength: 6,errorMessage: "La contraseña debe tener al menos seis caracteres"));
+
+    if (IsPost) {
+       // AntiForgery.Validate();
+        username = HttpUtility.HtmlEncode(Request.Form["username"]);
+        password = HttpUtility.HtmlEncode(Request.Form["password"]);
+        rememberMe = Request.Form["rememberMe"].AsBool();
+        bool habilitado = false;
+        string id_usuario = "";
+        //obtener direccion ip de la computadora que se conecta
+        string strHostName = string.Empty;
+        string direccionip = "";
+        strHostName = Dns.GetHostName();
+        IPAddress[] hostIPs = Dns.GetHostAddresses(strHostName);
+        for (int i = 0; i < hostIPs.Length; i++){ direccionip = hostIPs[i].ToString(); }
+
+        if (Validation.IsValid()) {
+            //IF THE USER HAS MADE TOO MANY LOGIN ATTEMPTS (4) THEN THEIR ACCOUNT IS LOCKED OUT FOR 30 MINUTES THE TIME MUST BE UTC!! BECAUSE IN THE DATABASE THE TIME IS STORED AS UTC!!
+            if (WebSecurity.UserExists(username) && WebSecurity.GetPasswordFailuresSinceLastSuccess(username) > 4 && WebSecurity.GetLastPasswordFailureDate(username).AddMinutes(1) > DateTime.UtcNow)  {
+                WebSecurity.Logout();
+                Response.Redirect("login?blocked=1");
+                return;
+            }
+            else {
+                WebSecurity.Logout();
+                if (WebSecurity.Login(username.Trim(), password.Trim(), rememberMe)) {
+                    Response.Cookies[0].Expires = DateTime.Now.AddDays(30);
+                    string sqlText = "SELECT habilitado,UserId FROM UserProfile WHERE Email = @0";
+                    var C = Conn.QuerySingle(sqlText, username);
+                    if (C != null)  { habilitado = Convert.ToBoolean(C.habilitado);
+                        id_usuario = Convert.ToString(C.UserId);
+                    }
+                    if (habilitado == true) {
+                        if (WebSecurity.IsAuthenticated)  {
+                            errorMessage = "Intento acceder por segunda vez en el sistema, sus sesión anterior ha sido terminada, favor de ingresar de nuevo.";
+                            WebSecurity.Logout();
+                        }
+                        else    {
+                            string InfoSeguridad = "SELECT Id_UserProfile FROM TUltimoIngresoAlSistema WHERE Id_UserProfile=@0";
+                            var CSeg = Conn.QuerySingle(InfoSeguridad, C.UserId);
+                            if (CSeg != null)  {
+                                string updateCommand1 = "UPDATE TUltimoIngresoAlSistema SET fecha_ultimo_ingreso=@0,Ip_donde_ingreso=@1,Nombre_computadora=@2 WHERE Id_UserProfile=@3";
+                                Conn.Execute(updateCommand1, DateTime.Now, direccionip, Functions.GetNombreComputadora(), C.UserId);
+                            }
+                            else  {
+                                string insertCommand01 = "INSERT TUltimoIngresoAlSistema  (Id_UserProfile,fecha_ultimo_ingreso,Ip_donde_ingreso,Nombre_computadora) Values(@0, @1, @2, @3)";
+                                Conn.Execute(insertCommand01, C.UserId, DateTime.Now, direccionip, Functions.GetNombreComputadora());
+                            }
+                            Response.Redirect("protected/default");
+                        }
+                    }
+                    else { errorMessage = "Su acceso no fue exitoso."; }
+                }
+            }
+            Conn.Close();
+            Conn.Dispose();
+        }
+    }
+}
+
+<!DOCTYPE html>
+<!--[if IE 8]> <html lang="en" class="ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="en" class="ie9"> <![endif]-->
+<!--[if !IE]><!-->
+<html lang="es-mx">
+ <!--<![endif]-->
+<head>
+    <meta charset="utf-8" />
+    <title>Corte Nacional de Honor ASMAC.</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="shortcut icon" href="~/impe_icon.ico" type="image/vnd.microsoft.icon" />
+    <meta name="author" content="Dr. Roy Alonso Terrazas M. Ph.D.">
+    <meta name="keyword" content="Asociación de Scouts de México A.C.">
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+    <link href="assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="assets/plugins/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" type="text/css" />
+    <link href="assets/plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/style-metro.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/style.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/style-responsive.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/themes/default.css" rel="stylesheet" type="text/css" id="style_color" />
+    <link href="assets/plugins/uniform/css/uniform.default.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="assets/plugins/select2/select2_metro.css" />
+    <link rel="stylesheet" type="text/css" href="protected/css/CssRoyTerrazas.css" />
+    <link href="assets/css/pages/login-soft.css" rel="stylesheet" type="text/css" />
+</head>
+<body class="login">
+    <div class="logo"></div>
+    <div class="content">
+        <form class="form-vertical login-form" method="post">
+          
+                    @if (WebSecurity.IsAuthenticated){
+
+
+                       <!-- <p> Se encuentra actualmente en el sistema como: @WebSecurity.CurrentUserName.
+                            <a href="@Href("~/account/Logout")"> Salir</a>
+                        </p>
+                        -->
+
+                        WebSecurity.Logout();
+                        Session.Clear();
+                        Session.Abandon();
+                        FormsAuthentication.SignOut(); 
+
+                    }
+                    <div align="center">
+                        <img class="img-rounded img-responsive" src="~/Images/cnh_blanco.svg" title="Corte Nacional de Honor, Asociación de Scouts de México A.C.">
+                        <h5 class="form-title"><FONT color="#FFFFFF">ASOCIACIÓN DE SCOUTS DE MÉXICO A.C.</FONT></h5>
+                    </div>
+                <div class="alert alert-error hide">
+                    <button class="close" data-dismiss="alert"></button>
+                    <span>Acceda con su clave y contrase&ntilde;a.</span>
+                </div>
+                <div class="control-group">
+                    <!--ie8, ie9 does not support html5 placeholder, so we just show field title for that-->
+                    <label class="control-label visible-ie8 visible-ie9">*Usuario</label>
+                    <div class="controls">
+                        <div class="input-icon left">
+                            <i class="icon-envelope"></i>
+                            <input class="m-wrap placeholder-no-fix textbox" type="text" autofocus required autocomplete="off" placeholder="Usuario" name="username" id="username" value='@Request["username"]' />
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label visible-ie8 visible-ie9">*Contrase&ntilde;a </label>
+                    <div class="controls">
+                        <div class="input-icon left">
+                            <i class="icon-lock"></i>
+                            <input class="m-wrap placeholder-no-fix textbox" type="password" id="password" required autocomplete="off" placeholder="Contrase&ntilde;a" name="password" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <label class="checkbox"><input type="checkbox" id="rememberMe" name="rememberMe" value="true" />Recordarme</label>
+                    <button type="submit" class="btn purple pull-right">Acceder <i class="m-icon-swapright m-icon-white"></i></button>
+                </div>
+                <div class="forget-password"> @if (errorMessage != "")  { <center> <span class="errorMessage"> <font color=white>@errorMessage.ToUpper()</font></span></center> }  </div>
+       </form>
+
+        <!--
+        <form class="form-vertical forget-form" action="SendEmail" method="post">
+   
+            <h3>&iquest;Olvido su contrase&ntilde;a?</h3>
+            <p>Introduzca su email registrado para restablecer su contrase&ntilde;a.</p>
+            <p>Enviaremos instrucciones a su email registrado.</p>
+            <div class="control-group">
+                <div class="controls">
+                    <div class="input-icon left">
+                        <i class="icon-envelope"></i>
+                        <input class="m-wrap placeholder-no-fix" type="email" placeholder="Email" autocomplete="off" name="email" id="email" required />
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="back-btn" class="btn">
+                    <i class="m-icon-swapleft"></i> Regresar
+                </button>
+                <button type="submit" class="btn purple pull-right">
+                    Mandar <i class="m-icon-swapright m-icon-white"></i>
+                </button>
+            </div>
+        </form>
+
+            -->
+    </div>
+
+    <div class="copyright"> <span class="glyphicon glyphicon-knight"></span> @DateTime.Today.Year &copy; ASMAC </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="assets/plugins/jquery-1.10.1.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/jquery-migrate-1.2.1.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/jquery-ui/jquery-ui-1.10.1.custom.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/bootstrap-hover-dropdown/twitter-bootstrap-hover-dropdown.min.js" type="text/javascript"></script>
+    <!--[if lt IE 9]>
+    <script src="assets/plugins/excanvas.min.js"></script>
+    <script src="assets/plugins/respond.min.js"></script>
+    <![endif]-->
+    <script src="assets/plugins/jquery-slimscroll/jquery.slimscroll.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/jquery.blockui.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/jquery.cookie.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/uniform/jquery.uniform.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/jquery-validation/dist/jquery.validate.min.js" type="text/javascript"></script>
+    <script src="assets/plugins/backstretch/jquery.backstretch.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="assets/plugins/select2/select2.min.js"></script>
+    <script src="assets/scripts/app.js" type="text/javascript"></script>
+    <script src="assets/scripts/login-soft.js" type="text/javascript"></script>
+    <script>
+		            jQuery(document).ready(function() {
+		              App.init();
+		              Login.init();
+		            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+﻿
+
+@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Recursos asegurados";
+    var Conn = Database.Open("Dashboard");
+
+
+    var Borrar = Convert.ToBoolean(Request.Form["Borrar"]);
+    var IdRecursos = Request.Form["IdRecursos"];
+    var ErrorMessage = "";
+    var MessageExito = "";
+
+
+}
+
+@{   // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)   { Response.Redirect("SinPermiso"); }
+
+
+
+    if (IsPost && IdRecursos != "")    {
+        if (Borrar == true )        {
+
+            var sqlText01 = "SELECT * FROM webpages_Acceso_RecursosPorPersona WHERE Id_webpages_Recursos=@0";
+            var C01 = Conn.QuerySingle(sqlText01, IdRecursos);
+            if (C01 == null)            {
+                var sqlText02 = "SELECT * FROM webpages_AccesoRecursosPorGrupo WHERE Id_webpages_Recursos=@0";
+                var C02 = Conn.QuerySingle(sqlText02, IdRecursos);
+                if (C02 == null)                {
+                    var deleteCommand = "DELETE FROM webpages_Recursos WHERE Id_Recursos = @0";
+                    Conn.Execute(deleteCommand, IdRecursos);
+                    MessageExito = "El recurso fué borrado";
+                }
+                else { ErrorMessage = "No se puede borrar este recurso ya que hay grupos que tienen permiso a acceder al mismo, quite el permiso a los grupos y podrá borrarlo."; }
+            }
+            else { ErrorMessage = "No se puede borrar este recurso ya que hay usuarios que tienen permiso a acceder al mismo, quite el permiso a los usuarios y podrá borrarlo."; }
+
+
+
+
+        }
+    } // is post
+
+
+
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Recursos asegurados
+            <small>Catalogo de paginas protegidas por el sistema</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li class="active"><a href="#" title="Recursos asegurados"><i class="fa  fa-unlock-alt"></i> Recursos asegurados</a></li>
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+
+
+   
+
+
+        <!----------------------------------------------------------------------------------------------------------->
+
+
+        @{string exito1 = Request.QueryString["exito"];
+            if (exito1 == "true")
+            {
+                <div class="alert alert-success">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4>¡Éxito!.</h4>
+                    La operación se ha completado con éxito
+                </div>
+            }
+        }
+
+
+
+
+        @if (ErrorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>¡Error!.</h4>
+                @Html.Raw(ErrorMessage)
+            </div>
+        }
+
+        @if (MessageExito != "")
+        {
+            <div class="alert alert-success alert-block">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>¡Éxito!.</h4>
+                @Html.Raw(MessageExito)
+            </div>
+        }
+
+
+
+
+
+        <div class="row">
+            <div class="col-xs-12">
+
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title"><i class="fa  fa-unlock-alt"></i> Catalogo de recursos asegurados</h3>
+                    </div>
+                
+                        <div class="text-right">
+                            <button type="button" class="btn bg-purple" title="Nuevo" onclick="window.location.href='NuevoRecurso'"> Nuevo</button> &nbsp;
+                        </div>
+            
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div class="table-responsive">
+                            <table id="example2" class="table table-bordered table-striped ">
+                                <thead>
+                                    <tr>
+                                        <th>Id</th>
+                                        <th><i class="icon-th-list"></i> Descripción del recurso </th>
+                                        <th><i class="icon-file icon-black"></i> Ruta</th>
+                                        <th><i class="icon-file icon-black"></i>Publicable</th>
+                                        <th><i class="icon-file icon-black"></i>Menú donde esta</th>
+                                        <th><i class="icon-exclamation-sign icon-black"></i>Opciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+
+
+                                    @{var selectQueryString5 = "SELECT * FROM webpages_Recursos"; }
+                                    @foreach (var row3 in Conn.Query(selectQueryString5))
+                                    {
+                                        <tr>
+                                            <td>@row3.Id_Recursos</td>
+                                            <td>@row3.Descripcion</td>
+                                            <td>@row3.Ruta</td>
+                                            <td>
+                                                @{
+                                                    if (row3.publicable == true)
+                                                    {
+                                                        @Html.Raw("<font color=green><strong> Público </strong></font>")
+                                                    }
+                                                    else
+                                                    {
+                                                        @Html.Raw("<font color=navy><strong>Solo SAdministradores </strong></font>")
+                                                    }
+                                                }
+                                            </td>
+                                            <td>
+                                              
+                                                @{if (row3.publicable != true)   { @Html.Raw("No Aplica");      }
+                                                    else   {
+                                                       var sqlText0X = "SELECT * FROM webpages_NombreMenu WHERE Id=@0";
+                                                        var C01x = Conn.QuerySingle(sqlText0X, row3.Id_webpages_NombreMenu);
+                                                        if (C01x != null)    { <i class="@C01x.IconoMenu"></i>  @C01x.NombreMenu;    }
+                                                    }
+                                                }
+                                            </td>
+                                            <td>
+                                                <!-- buton groups -->
+                                                <div style="margin-top: 10px;" class="btn-toolbar">
+
+                                                    <div class="btn-group">
+                                                        <button class="btn">Seleccione</button>
+                                                        <button data-toggle="dropdown" class="btn dropdown-toggle">
+                                                            <span class="caret"></span>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li><a href="EditarRecur?IdRecursos=@row3.Id_Recursos" title="Editar">Editar</a></li>
+                                                            <li><a href="VerPermisosRecur?IdRecursos=@row3.Id_Recursos" title="Revisar permisos">Permisos</a></li>
+                                                            <li class="divider"></li>
+                                                            <li><a href="javascript:BorrarConParametro('@row3.Id_Recursos');" data-confirm="¿Esta seguro que desea borrar el registro?">Borrar</a></li>
+                     
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                    <!------------------------------------------------------------------------------------>
+
+                                            </td>
+
+                                        </tr>
+                                                    }
+                                
+                                </tbody>
+                                <tfoot>
+                                  
+                                </tfoot>
+                            </table><br />
+                        </div>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+
+            </div>
+        </div>
+    </section>
+</div>
+
+@{ 
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+    function BorrarConParametro(A) {
+       // var r = confirm("¿Estas seguro que deseas borrar el registro?, esta acción no se puede deshacer.");
+       // if (r == true) {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'RecursosAsegurados');
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'IdRecursos');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', A);
+            myvar1 = document.createElement('input');
+            myvar1.setAttribute('name', 'borrar');
+            myvar1.setAttribute('type', 'hidden');
+            myvar1.setAttribute('value', true);
+            form.appendChild(myvar);
+            form.appendChild(myvar1);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+      // }
+</script>
+

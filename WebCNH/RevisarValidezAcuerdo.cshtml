@@ -1,0 +1,220 @@
+﻿@{
+    string mandado;
+    mandado = Request.Form["mandado"];
+    var Conn = Database.Open("Dashboard");
+    bool error = true;
+
+    string NumeroAcuerdo = "", TituloAcuerdo="", textoOficio="";
+    DateTime fecha = DateTime.Now;
+
+
+    NumeroAcuerdo = Request.QueryString["idunico"];
+    string  ErrorMsg = "";
+
+    var sqlText01en = "SELECT Fecha,TituloAcuerdo,NumAcuerdo,textoOficio FROM  TAcuerdosCNH WHERE NumeroAleatorio=@0 ";
+    var C0En = Conn.QuerySingle(sqlText01en, NumeroAcuerdo);
+    if (C0En != null) {
+        fecha = C0En.Fecha;
+        TituloAcuerdo = C0En.TituloAcuerdo;
+        textoOficio = C0En.textoOficio;
+        error = false;
+    }
+    else { error = true; }
+
+
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Revisión de la válidez de un acuerdo de la CNH</title>
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+    <!-- input redondeado -->
+    <link href="css/rounded.css" rel="stylesheet">
+    <link href="css/botones.css" rel="stylesheet">
+    <link href="css/typefile.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+</head>
+<body id="page-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="default#page-top">  CORTE NACIONAL DE HONOR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#portfolio">Integrantes </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <section class="page-section bg-primary" id="about">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0"><br />Revisión de la válidez de un acuerdo de la CNH</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4">
+                        Aquí podrá consultar  la válidez de los acuerdos de la CNH.
+                    </p>
+            
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section" id="services">
+        <div class="container my-1">
+
+
+            <center><img src="img/cnh.svg" class="img-responsive" width="350" height="200" /></center>
+            <h2 class="text-center mt-2">Revisión de válidez de acuerdo emitido por la CNH</h2>
+            <hr class="divider my-3">
+
+            @if (error == true)
+            {
+             
+                <div class="alert alert-danger">   <center>  <strong>¡ADVERTENCIA!</strong> El número de acta de acuerdo que usted desea revisar es inexistente o se encuentra FALSIFICADA. </center>  </div>
+            }
+
+
+
+            @if (error == false)
+            {
+                <form name="forma1" id="forma1" method="post">
+
+                    <div class="row">
+                        <p class="col-lg-12 col-md-12 text-center"></p>
+                        <p class="text-muted mb-1 text-center">  <small>Revise por favor que el título del acuerdo que le fué enviado y que todos sus datos correspondan con los datos que se muestran a continuación, <u>solo entonces</u> el acuerdo se puede considerar válido.</small></p>
+                    </div>
+
+
+                    <br />
+                    <div class="row">
+                        <div class="col-lg-12 col-md-12 text-center">
+                            <h3><font color="green">EL FOLIO ELECTRÓNICO EXISTE.</font></h3>
+                        </div>
+                    </div>
+
+
+                        <br />
+                        <div class="row">
+                            <div class="col-lg-12 col-md-12 text-left">
+                                <div class="mt-12">
+
+
+                                    Título del acuerdo:<font color="navy"> @TituloAcuerdo </font>
+
+                                </div>
+                            </div>
+                            <br /><br /> <br /><br />
+                            <div class="col-lg-6 col-md-6 text-left">
+                                <div class="mt-6">
+                                    Fecha : @fecha
+                                </div>
+                            </div>
+                                <br /><br /> <br /><br />
+                            <div class="col-lg-6 col-md-6 text-left">
+                                <div class="mt-6">
+                                    Folio electrónico: @NumeroAcuerdo
+                                </div>
+                            </div>
+
+
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-lg-12 col-md-12 text-center"><br /></div>
+
+                            <div class="mt-12">
+                                Comentarios:  @Html.Raw(textoOficio)
+                            </div>
+
+
+                        </div>
+</form>
+            }
+            <br />
+            <hr />
+
+
+
+        </div>
+    </section>
+
+
+
+
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Corte Nacional de Honor <Br />Asociación de Scouts de México A.C. <br />Copyright &copy; CNH. RT CreativeStudio 2020</div>
+        </div>
+    </footer>
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+</body>
+</html>
+
+<script>
+    function Mandar(){
+        document.forms["forma1"].submit();
+    }
+
+    function Mandar2() {
+        document.forms["forma2"].submit();
+    }
+
+</script>
+
+
+@{
+
+    Conn.Close();
+    Conn.Dispose();
+}

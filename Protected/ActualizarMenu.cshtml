@@ -1,0 +1,20 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    string idusuario = "";
+    string valor = "";
+    Boolean valorx = true;
+    int valorfinal = 0;
+        idusuario = Request["id_usuario"];
+        valor = Request["valor"];
+            var sqlText00 = "SELECT menu_desplegado FROM TDatos WHERE id_UserProfile=@0";
+        var C00 = Conn.QuerySingle(sqlText00, idusuario);
+        if (C00 != null)        {   valorx = Convert.ToBoolean(C00.menu_desplegado);}
+        if (valorx==true) {            valorfinal = 0;        }
+        else {            valorfinal = 1;        }
+        if (idusuario==null) { valorfinal = 1; }
+    var Cadena = "UPDATE TDatos SET menu_desplegado =@0 WHERE id_UserProfile=@1";
+    var Update = Conn.QuerySingle(Cadena,valorfinal, idusuario);
+        Conn.Close();
+    Conn.Dispose();
+}
+

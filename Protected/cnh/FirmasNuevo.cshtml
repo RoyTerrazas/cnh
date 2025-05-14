@@ -1,0 +1,191 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Definicion de firmas";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+    WebImage photo = null;
+    var newFileName = "";
+    var imagePath = "";
+
+    string nuevo = "", editar = "", id = "", enviar = "", IdSecretario="";
+    nuevo = Request.Form["nuevo"];
+    editar = Request.Form["editar"];
+    id = Request.Form["id"];
+    enviar = Request.Form["enviar"];
+    IdSecretario = Request.Form["IdSecretario"];
+
+    // @Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+
+    string IdTConsejeros = "", imagen = "";
+
+    //prectargar datos
+    if (editar == "1" && id != null)
+    {
+
+        var sqlText00 = "SELECT * FROM TFirmasSecretario WHERE id=@0";
+        var C00 = Conn.QuerySingle(sqlText00, id);
+        if (C00 != null)
+        {
+            imagen = C00.RutaFirmaSecretario;
+            IdTConsejeros = Convert.ToString(C00.IdTConsejeros);
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //nuevo
+    if (enviar == "1" && id == "")    {
+
+
+        photo = WebImage.GetImageFromRequest();
+        if (photo != null)        {
+
+            var sqlText = "SELECT * FROM TFirmasSecretario WHERE IdTConsejeros=@0 and RutaFirmaSecretario=@1 ";
+            var Cn = Conn.QuerySingle(sqlText, IdSecretario, newFileName);
+            if (Cn == null)            {
+                newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(photo.FileName);
+                imagePath = @"protected\FirmasSecretarios\" + newFileName;
+                photo.Resize(width: 150, height: 100, preserveAspectRatio: true, preventEnlarge: true);
+                photo.Save(@"~\" + imagePath);
+                var insertCommand = "INSERT TFirmasSecretario(RutaFirmaSecretario,IdTConsejeros) Values(@0,@1)";
+                Conn.Execute(insertCommand, newFileName, IdSecretario);
+                Response.Redirect("MenuFirmas?ex=1");
+            }
+
+
+        }
+        else { Response.Redirect("MenuFirmas?err=1"); }
+
+
+
+
+
+    }
+
+    //editar
+    string RutaFirmaSecretario = "", Rutacompleta="";
+    if (enviar == "1" && id != "")    {
+
+
+        photo = WebImage.GetImageFromRequest();
+        if (photo != null)        {
+
+            //buscar la imagen anterior y borrarla
+            var sqlText = "SELECT * FROM TFirmasSecretario WHERE id=@0";
+            var Cn = Conn.QuerySingle(sqlText,id);
+            if (Cn != null) {
+                RutaFirmaSecretario = Cn.RutaFirmaSecretario;
+                Rutacompleta = Server.MapPath("~/protected/FirmasSecretarios/" + RutaFirmaSecretario);
+                if (File.Exists(Rutacompleta)){ File.Delete(Rutacompleta); }
+            }
+
+            newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(photo.FileName);
+            imagePath = @"protected\FirmasSecretarios\" + newFileName;
+            photo.Resize(width: 150, height: 100, preserveAspectRatio: true, preventEnlarge: true);
+            photo.Save(@"~\" + imagePath);
+            var updateCommand00 = "UPDATE TFirmasSecretario SET RutaFirmaSecretario=@0, IdTConsejeros=@1 WHERE Id=@2";
+            Conn.Execute(updateCommand00, newFileName, IdSecretario, id);
+            Response.Redirect("MenuFirmas?ex=1");
+        }
+
+    }
+
+    }
+
+
+
+
+<form method="post" name="forma" class="form-horizontal" enctype="multipart/form-data">
+    <input type="hidden" name="enviar" value="1" /> 
+    <input type="hidden" name="id" value="@id" />
+
+    <div class="content-wrapper">
+        <section class="content-header">
+            <h1> Firmas <small>administracion de firmas de los secretarios de la corte</small> </h1>
+            <ol class="breadcrumb">
+                <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="MenuFirmas" title="Menú de firmas"><i class="fa fa-clone"></i>Menú firmas</a></li>
+                <li><a href="#" class="active" title="Administración de actas de la CNH">Adm. Actas</a></li>
+            </ol>
+        </section>
+
+        <section class="content">
+            <div class="row">
+                <div class="col-md-12">
+
+                    <div class="box ">
+                        <div class="box-header ">
+                            <h3 class="box-title">Datos de la firma del secretario de la corte</h3>
+                        </div>
+                        <!-- /.box-header -->
+                        <!-- form start -->
+                 
+                            <div class="box-body">
+                                <div class="form-group">
+                                    <label for="inputEmail3" class="col-sm-2 control-label">*Seleccione el miembro de la corte</label>
+                                    <div class="col-sm-10">
+                                        @{   string    selectQueryString2 = "SELECT * FROM TConsejeros  where secretario=1";}
+
+                                        <select id="IdSecretario" name="IdSecretario" required class="form-control  select">
+                                            <option value="">SELECCIONE SECRETARIO</option>
+                                            @foreach (var row2 in Conn.Query(selectQueryString2))                                            {
+                                                <option value="@row2.Id" @if ( IdTConsejeros==Convert.ToString(row2.Id)) {@Html.Raw("selected") } >@row2.nombre_Consejero.ToUpper()</option>
+                                            }
+                                        </select>
+
+
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputPassword3" class="col-sm-2 control-label">* Subir imagen de firma. </label>
+                                    <div class="col-sm-5">
+                                        <input type="file" required name="Image" accept="image/x-png" />
+                                        <small>( Formato png transparente tamaño 150x100 pix)</small>
+                                        @if (imagen != "")  {  <br />  <a href="~/Protected/FirmasSecretarios/@imagen" title="firma del secretario" target="_blank">Descargar firma</a>      }
+                          
+                                    </div>
+                                </div>
+
+                                @if (imagen != ""){
+                                <div class="form-group">
+                                    <div class="col-sm-5">        <img src="~/Protected/FirmasSecretarios/@imagen" width="150" height="100" title="firma del secretario" />      </div>
+                                </div>
+                                 }
+
+                            </div>
+                            <!-- /.box-body -->
+                            <div class="box-footer">
+                                <button type="button" class="btn btn-default" onClick="location.href='MenuFirmas'">Cancelar</button>
+                                <button type="submit" class="btn pull-right">Aceptar</button>
+                            </div>
+                            <!-- /.box-footer -->
+                      
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+</form>
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

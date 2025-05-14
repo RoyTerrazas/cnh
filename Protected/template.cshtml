@@ -1,0 +1,39 @@
+﻿@{ 
+    var Conn = Database.Open("Dashboard");
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Dashboard";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Dashboard Médico  <small>Datos generales en tiempo real.</small> </h1>
+        <ol class="breadcrumb"> <li><a href="default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li> </ol>
+    </section>
+ 
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+
+  
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{ 
+    Conn.Close();
+    Conn.Dispose();
+}

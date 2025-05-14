@@ -1,0 +1,218 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Renovación de liderazgo ";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+
+    string id = "", UserId = "", Exito="", Fracaso="";
+    int contador = 0;
+    id = Request.Form["dato"];
+    int NumeroDeVotosParaAutorizar = 3;
+
+    bool aprobado = false;
+
+    //precargado
+    if (!IsPost) {
+        var sqlText00 = "SELECT * FROM  TRenovacionLiderazgo WHERE IdUseProfile=@0";
+        var C00 = Conn.QuerySingle(sqlText00, WebSecurity.CurrentUserId);
+        if (C00 != null)   {  aprobado = true;  }
+        else {    aprobado = false;  }
+
+
+        var sqlTextCont = "SELECT count(IdUseProfile) as Contador FROM  [dbo].[TRenovacionLiderazgo]";
+        var C00C = Conn.QuerySingle(sqlTextCont);
+        if (C00C != null) { contador = C00C.Contador; }
+    }
+
+
+    //buscar al secretario
+    var sqlTextCSec = "SELECT * FROM  TConsejeros WHERE secretario=1";
+    var CSec = Conn.QuerySingle(sqlTextCSec);
+    if (CSec != null)   {
+        //obtener su userId basado en su cum
+        var sqlTextCSec2 = "SELECT * FROM   VDatosCompletosUsuario WHERE cum=@0";
+        var CSec2 = Conn.QuerySingle(sqlTextCSec2, CSec.cum);
+        if (CSec2 != null)     {      UserId = Convert.ToString(CSec2.UserId);     }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (id!=null && IsPost) {
+
+        if (id == "1") {
+
+
+
+            //autorizo
+
+            //revisar que no se metan dos del mismo
+            var sqlTextContCRv = "SELECT * FROM  [dbo].[TRenovacionLiderazgo] where IdUseProfile=@0";
+            var CRv = Conn.QuerySingle(sqlTextContCRv, WebSecurity.CurrentUserId);
+            if (CRv == null)
+            {
+                var insertCommand = "INSERT INTO TRenovacionLiderazgo (IdUseProfile) Values(@0)";
+                Conn.Execute(insertCommand, WebSecurity.CurrentUserId);
+                aprobado = true;
+            }
+            else { Fracaso = "SOLO PUEDE INGRESAR UNA VOTACIÓN"; }
+
+
+
+
+            var sqlTextCont = "SELECT count(IdUseProfile) as Contador FROM  [dbo].[TRenovacionLiderazgo]";
+            var C00C = Conn.QuerySingle(sqlTextCont);
+            if (C00C != null)       {
+
+
+                contador = C00C.Contador;
+ 
+                if (C00C.Contador >= NumeroDeVotosParaAutorizar)            {          //se asciende al secretario como superadministrador
+                    var updateCommand = "UPDATE webpages_UsersInRoles SET RoleId=@0 WHERE UserId=@1";
+                    Conn.Execute(updateCommand, 1, UserId);
+                    Exito = "EL SECRETARIO DE LA CORTE AHORA ES SUPERADMINISTRADOR DEL SISTEMA";
+                }
+
+
+
+            }
+        }
+        else {
+            //no Autorizo
+            var deleteCommand = "DELETE FROM TRenovacionLiderazgo WHERE IdUseProfile = @0";
+            Conn.Execute(deleteCommand, WebSecurity.CurrentUserId);
+            aprobado = false;
+
+            var sqlTextCont = "SELECT count(IdUseProfile) as Contador FROM  [dbo].[TRenovacionLiderazgo]";
+            var C00C = Conn.QuerySingle(sqlTextCont);
+            if (C00C != null) { contador = C00C.Contador; }
+
+            if (C00C.Contador < NumeroDeVotosParaAutorizar)
+            {   //se dessciende al secretario como administrador
+                var updateCommand = "UPDATE webpages_UsersInRoles SET RoleId=@0 WHERE UserId=@1";
+                Conn.Execute(updateCommand, 2, UserId);
+                Fracaso = "AL NO TENER MAYORIA EL SECRETARIO HA SIDO REGRESADO A SU ESTATUS NORMAL DE ADMINISTRADOR";
+            }
+
+
+
+        }
+
+
+    }
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>Renovación del liderazgo <small> Nombramiento de super administrador.</small> </h1>
+        <ol class="breadcrumb">
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" class="active" title="Administración de actas de la CNH">Nombramiento de Super Admin.</a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+
+        @if (Exito != "")
+        {
+
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h4><i class="icon fa fa-check"></i> Alerta!</h4>
+                  @Exito 
+            </div>
+
+        }
+
+
+        @if (Fracaso!="") { 
+        <div class="alert alert-danger alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <h4><i class="icon fa fa-ban"></i> Alerta!</h4>
+            @Fracaso 
+        </div>
+        }
+
+        <div class="row">
+            <div class="col-md-12">
+
+
+                <div class="box ">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">En caso de falta del presidente de la CNH. </h3>
+                    </div>
+
+              
+                        <div class="box-body">
+                            <div class="form-group">
+                                <label for="inputEmail3" class="col-sm-12 control-label">SU ESTATUS: @if (aprobado == true) {@Html.Raw("<FONT COLOR=GREEN>USTED HA AUTORIZADO AL SECRETARIO A SER SUPER ADMINISTRADOR</FONT> "); } else {@Html.Raw("NO HAY ACUERDO PARA LA SUSTITUCIÓN DEL SUPER ADMINISTRADOR"); }    </label><br /><br />
+                                <label for="inputEmail3" class="col-sm-12 control-label">VOTOS A FAVOR DEL CAMBIO: @contador DE @NumeroDeVotosParaAutorizar REQUERIDOS</label><br /><br />
+
+                                <div  class="col-sm-12">
+                                   En el ejercicio de mis facultades como miembro de la Corte Nacional de Honor y en falta del presidente de la misma, autorizo que se nombre al secretario de la CNH de manera interina como super administrador de este sistema. El cual al tener 3 votos de los miembros de la corte,
+                                    tendrá la posibilidad de acceder como super administrador a este sistema y hacer los cambios requeridos dentro del marco de los acuerdos de los miembros de la corte.
+                                </div>
+                            </div>
+               
+           
+                        </div>
+             
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-default" onclick="javascript: Mandar(0);">NO AUTORIZO</button>
+                            <button type="submit" class="btn  pull-right" onclick="javascript: Mandar(1);">AUTORIZO</button>
+                        </div>
+       
+                   
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+<script type="text/javascript">
+    function Mandar(id) {
+    
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'RenovacionLiderazgo');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'dato');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>

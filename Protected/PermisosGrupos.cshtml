@@ -1,0 +1,158 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    Page.Title = "Permisos a Grupos";
+    var Conn = Database.Open("Dashboard");
+    string RoleName = "";
+    var role = "";
+
+
+    var sqlText01 = "SELECT * FROM webpages_UsersInRoles WHERE Userid=@0";
+    var C01 = Conn.QuerySingle(sqlText01, WebSecurity.CurrentUserId);
+    if (C01 != null)
+    {
+        role = Convert.ToString(C01.RoleId);
+    }
+
+    var sqlText00 = "SELECT * FROM webpages_Roles WHERE RoleId=@0";
+    var C00 = Conn.QuerySingle(sqlText00, role);
+    if (C00 != null)
+    {
+        RoleName = C00.RoleName;
+    }
+
+
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)    { Response.Redirect("SinPermiso"); }
+
+
+}
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Permisos a Grupos 
+            <small>Asignación de privilegios de acceso a grupos</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="#" title="Permisos a Grupos"><i class="fa fa-unlock"></i>Permisos a Grupos</a></li>
+
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+
+
+        <div class="box box-default color-palette-box">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa fa-group"></i> Grupos existentes: </h3>
+            </div>
+            <div class="box-body">
+              
+                    <div class="table-responsive">
+                    <!----------------------->
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th> Id</th>
+                                    <th><i class="icon-tag icon-black"></i> Rol</th>
+
+                                    <th><i class="icon-exclamation-sign icon-black"></i>Opciones</th>
+
+                            </thead>
+                            <tbody>
+
+                                @{  var selectQueryString3 = "SELECT * FROM webpages_Roles order by RoleId";  }
+
+                                @foreach (var row2 in Conn.Query(selectQueryString3))
+                                {
+
+                                    <tr>
+                                        <td>
+                                            @Html.Raw(row2.RoleId)
+                                        </td>
+                                        <td>
+
+                                            @if (row2.RoleName == "SAdmin")
+                                            {
+                                                <i class="fa fa-star"></i> @Html.Raw(row2.RoleName + " ");
+                                            }
+                                            else
+                                            {
+
+                                                if (row2.RoleName == "Admin")
+                                                {
+                                                    <i class="fa fa-star-o"></i>  @Html.Raw(row2.RoleName + " ");
+                                                }
+                                                else
+                                                {
+                                                    <i class="fa fa-user"></i>  @Html.Raw(row2.RoleName + " ");
+                                                }
+                                            }
+
+                                        </td>
+
+                                        <td>
+                                            @{
+
+                                                // deshabilita que los admin puedan cambiar los permisos del grupo sadmin.
+                                                if (Convert.ToString(RoleName) == "SAdmin" && Convert.ToString(row2.RoleName) == "SAdmin")
+                                                {
+
+                                                   <button class="btn bg-purple" title="Permisos al grupo @row2.RoleName " onclick="window.location.href='PermisosGrup?RoleId=@row2.RoleId'" >Permisos a grupos</button>
+
+                                                }
+                                                else
+                                                {
+
+                                                    if (row2.RoleName == "SAdmin")
+                                                    {
+                                                        <button disabled class="btn bg-purple" title="Permisos al grupo @row2.RoleName " onclick="window.location.href='PermisosGrup?RoleId=@row2.RoleId'">Permisos a grupos  </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn bg-purple" title="Permisos al grupo @row2.RoleName " onclick="window.location.href='PermisosGrup?RoleId=@row2.RoleId'">Permisos a grupos  </button>}
+
+                                                }// del else
+
+                                            }
+
+
+
+
+                                        </td>
+
+                                    </tr>
+                                                }
+                        
+                            </tbody>
+                        </table>
+
+                
+                    <!----------------------->
+                    </div>
+
+                
+             
+                <!-- /.row -->
+                <div class="box-footer">
+                      A los permisos a los grupos se les pueden adicionar permisos a usuarios, no tiene caso que se dupliquen permisos sobre el mismo recurso.
+                </div>
+            </div>
+            <!-- /.box-body -->
+        </div>
+
+
+
+     
+
+
+    </section>
+</div>
+
+@{ 
+    Conn.Close();
+    Conn.Dispose();
+}

@@ -1,0 +1,42 @@
+﻿
+
+
+
+@{ var id_opcion= Convert.ToInt32(Request.QueryString["id"]);
+    var Conn = Database.Open("Dashboard");
+   int contadorr = 0; string selectQueryStringge = "SELECT id,nombre_Consejero,ver from TConsejeros where ver=1 order by nombre_consejero";  }
+
+
+
+@if (id_opcion == 1)
+{
+
+<select id="consejero" name="consejero" required class="form-control  select">
+    <option value="0">NINGUNO</option>
+    @foreach (var row2 in Conn.Query(selectQueryStringge)) {
+
+        //contador de asignaciones solo cuando esta en revision
+        var sqlText1n = "select count(asignado) as contador from [dbo].[TSolicitudTramite] where estatus=1 and asignado=@0";
+        var C1n = Conn.QuerySingle(sqlText1n, row2.Id);
+        if (C1n != null)
+        { contadorr = C1n.contador; }
+        <option value="@row2.Id">@row2.nombre_consejero.ToUpper() (@contadorr)</option>
+    }
+</select>
+}
+else
+{
+
+    <select id="consejero" disabled name="consejero" class="form-control  select">
+        <option value="0" selected>ASIGNE ESTATUS</option>
+    </select>
+  
+
+}
+
+
+
+
+        @{Conn.Close();
+            Conn.Dispose();
+        }

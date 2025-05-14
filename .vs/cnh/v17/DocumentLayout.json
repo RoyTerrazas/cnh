@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\roy_a\\OneDrive\\Documentos\\Sitios Web\\cnh\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{9E1E4EAD-A893-4DFF-A5D7-B417D231573F}|C:\\Users\\roy_a\\OneDrive\\Documentos\\Sitios Web\\cnh|c:\\users\\roy_a\\onedrive\\documentos\\sitios web\\cnh\\protected\\cnh\\consultardatos.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{9E1E4EAD-A893-4DFF-A5D7-B417D231573F}|C:\\Users\\roy_a\\OneDrive\\Documentos\\Sitios Web\\cnh|solutionrelative:protected\\cnh\\consultardatos.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ConsultarDatos.cshtml",
+              "DocumentMoniker": "C:\\Users\\roy_a\\OneDrive\\Documentos\\Sitios Web\\cnh\\Protected\\cnh\\ConsultarDatos.cshtml",
+              "RelativeDocumentMoniker": "Protected\\cnh\\ConsultarDatos.cshtml",
+              "ToolTip": "C:\\Users\\roy_a\\OneDrive\\Documentos\\Sitios Web\\cnh\\Protected\\cnh\\ConsultarDatos.cshtml",
+              "RelativeToolTip": "Protected\\cnh\\ConsultarDatos.cshtml",
+              "ViewState": "AQIAAIcAAAAAAAAAAAAAAJwAAABYAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-03-19T19:22:39.046Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

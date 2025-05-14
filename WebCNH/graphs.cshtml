@@ -1,0 +1,505 @@
+﻿@{
+    string mandado, cum, folio;
+    mandado = Request.Form["mandado"];
+    var Conn = Database.Open("Dashboard");
+    bool ver = true, Ver = false;
+    int Id_tipoCaso = 0;
+    string mensaje = "", MsgError = "";
+    string CumCargado = "", ProvinciaCargada = "", EstatusCargado = "", resumenCargado = "", NotasCargadas = "", ErrorMsg = "";
+
+    if (IsPost && mandado == "1")
+    {
+        //Validate Google recaptcha here
+        var response = Request["g-recaptcha-response"];
+        string secretKey = "6Lf39PYUAAAAAAGgaT8rW84MVz6qEdgTWTlLrKAA";
+        var client = new WebClient();
+        var result = client.DownloadString(string.Format("https://www.google.com/recaptcha/api/siteverify?secret={0}&response={1}", secretKey, response));
+        string substring = result.Substring(14, 5);
+        if (substring.Trim() == "fals") { mensaje = "Se requiere verifique la casilla para continuar."; }
+        else
+        {
+            cum = Request.Form["cum"];
+            folio = Request.Form["folio"];
+            var sqlText01 = "SELECT top 1 * FROM  VSolicitudTramite WHERE CUM=@0 and id=@1 order by fecha desc";
+            var C01 = Conn.QuerySingle(sqlText01, cum, folio);
+            if (C01 != null)
+            {
+                Ver = true;
+                if (cum != null) { CumCargado = cum.ToUpper(); } else { CumCargado = cum; }
+                if (C01.Nombre_provincia != null) { ProvinciaCargada = C01.Nombre_provincia.ToUpper(); } else { ProvinciaCargada = C01.Nombre_provincia; }
+                if (C01.Descrip != null) { EstatusCargado = C01.Descrip.ToUpper(); } else { EstatusCargado = C01.Descrip; }
+                if (C01.resumen != null) { resumenCargado = C01.resumen.ToUpper(); } else { resumenCargado = C01.resumen; }
+                if (C01.NotasCaso == "" || C01.NotasCaso == null) { NotasCargadas = "SIN NOTAS"; } else { NotasCargadas = C01.NotasCaso.ToUpper(); }
+                Id_tipoCaso = C01.id_CTipoCaso;
+                ver = false;
+            }
+            else
+            {
+                ErrorMsg = "No existe un folio asociado a ese CUM, o el folio único o CUM son erroneos.";
+                ver = false;
+                Ver = false;
+            }
+        }
+    }
+
+
+}
+
+@{
+    int TotResueltos = 10;
+    int TotRevision = 2;
+    int TotFaltanDatos = 1;
+    int TotRecibido = 1;
+    int ano = DateTime.Now.Year;
+
+
+
+
+
+    int TotalApelacion = 1;
+    int TotalInterpretacion = 1;
+    int TotalReconocimiento = 1;
+    int TotalReconsideracion = 1;
+    int TotalNegativa = 1;
+
+
+    var Cont00 = "select count(*) as TotResueltos from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and [estatus]=3";
+    var C000 = Conn.QuerySingle(Cont00);
+    if (C000 != null) { TotResueltos = C000.TotResueltos; }
+
+    var Cont01 = "select count(*) as TotRevision from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and [estatus]=1 ";
+    var C001 = Conn.QuerySingle(Cont01);
+    if (C001 != null) { TotRevision = C001.TotRevision; }
+
+    var Cont02 = "select count(*) as TotFaltanDatos from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and [estatus]=5 ";
+    var C002 = Conn.QuerySingle(Cont02);
+    if (C002 != null) { TotFaltanDatos = C002.TotFaltanDatos; }
+
+    var Cont03 = "select count(*) as TotRecibido from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and [estatus]=6 ";
+    var C003 = Conn.QuerySingle(Cont03);
+    if (C003 != null) { TotRecibido = C003.TotRecibido; }
+
+
+    var Cont04 = "select count(*) as TotalApelacion from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and id_CtipoCaso=1";
+    var C004 = Conn.QuerySingle(Cont04);
+    if (C004 != null) { TotalApelacion = C004.TotalApelacion; }
+
+    var Cont05 = "select count(*) as TotalInterpretacion from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and id_CtipoCaso=2 ";
+    var C005 = Conn.QuerySingle(Cont05);
+    if (C005 != null) { TotalInterpretacion = C005.TotalInterpretacion; }
+
+    var Cont06 = "select count(*) as TotalReconocimiento from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and id_CtipoCaso=3";
+    var C006 = Conn.QuerySingle(Cont06);
+    if (C006 != null) { TotalReconocimiento = C006.TotalReconocimiento; }
+
+    var Cont07 = "select count(*) as TotalReconsideracion from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and id_CtipoCaso=4";
+    var C007 = Conn.QuerySingle(Cont07);
+    if (C007 != null) { TotalReconsideracion = C007.TotalReconsideracion; }
+
+    var Cont08 = "select count(*) as TotalNegativa from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and id_CtipoCaso=5";
+    var C008 = Conn.QuerySingle(Cont08);
+    if (C008 != null) { TotalNegativa = C008.TotalNegativa; }
+
+  
+
+}
+
+@{
+    //revision de tiempo de los casos
+
+    //sacar el tiempo de los casos
+    int totalTiempo = 0;
+
+
+    var Contiem = "select count(*) as Total from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and fechaCierre IS NOT NULL ";
+    var Ct1 = Conn.QuerySingle(Contiem);
+    if (Ct1 != null)
+    {
+        totalTiempo = Ct1.Total;
+    }
+
+    //obtener el tiempo de cada caso y guardar en arreglo dinamico
+
+    int[] tiempos = new int[90];
+
+    int contador = 0;
+
+
+    var Contiem2 = "select id,fecha,fechacierre,fechaNotificacion from [dbo].[VSolicitudTramite]  where  YEAR(CURRENT_TIMESTAMP) = year(fecha) and fechaCierre IS NOT NULL";
+    foreach (var row in Conn.Query(Contiem2))
+
+    {
+
+        var sqlTextnx = "SELECT DateDiff(\"d\",@0,@1) AS DiasDiferencia FROM TSolicitudTramite where id=@2";
+        var C0nx = Conn.QuerySingle(sqlTextnx, row.fecha, row.fechacierre, row.id);
+        if (C0nx != null)
+        {
+            if (C0nx.DiasDiferencia == null)
+            { tiempos[contador] = 0; }
+            else { tiempos[contador] = C0nx.DiasDiferencia; }
+            contador++;
+        }
+
+    }
+
+
+    //sacar promedio de los tiempos de los casos
+    double MediaTiempos = 0;
+    for (int i = 0; i < totalTiempo; i++)
+    {
+        MediaTiempos += tiempos[i];
+    }
+    MediaTiempos = MediaTiempos / totalTiempo;
+    string Media = Math.Round(Convert.ToDecimal(MediaTiempos), 3).ToString();
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Panel estadístico CNH</title>
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+    <!-- input redondeado -->
+    <link href="css/rounded.css" rel="stylesheet">
+    <link href="css/botones.css" rel="stylesheet">
+    <link href="css/typefile.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body id="page-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="default#page-top">  CORTE NACIONAL DE HONOR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#portfolio">Integrantes </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <section class="page-section bg-primary" id="about">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0">Panel estadístico</h2>
+                    <hr class="divider light my-4">
+                    <p class="text-white-50 mb-4">
+                        Estadísticas de casos en tiempo real de la Corte Nacional de Honor.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section" id="services">
+        <div class="container my-1">
+
+
+            <center><img src="img/cnh.svg" class="img-responsive" width="350" height="200" /></center>
+            <h2 class="text-center mt-2">Panel de información de casos de la CNH</h2>
+            <hr class="divider my-3">
+
+            @if (ErrorMsg != "")
+            {
+                Ver = false;
+                <div class="alert alert-warning">   <center>  <strong>¡ADVERTENCIA!</strong> @ErrorMsg <A HREF="Seguimiento" target="_self"><STRONG>REGRESAR</STRONG></A></center>  </div>
+            }
+
+
+
+            @if (ver == true)
+            {
+
+                <div class="row">
+                    <p class="col-lg-12 col-md-12 text-center"></p>
+                    <p class="text-muted mb-1 text-center">  <center><small>La información aquí mostrada corresponde a datos en tiempo real de los casos de la Corte Nacional de Honor.</small></center></p>
+                </div>
+                <br /> <br /> <br />
+
+                <div class="row">
+                    <div class="col-lg-3 col-md-3 text-center">   </div>
+                    <div class="col-lg-6 col-md-6 text-center">
+
+
+                        <div class="mt-8">
+                            Número de casos durante el  @Html.Raw(ano)
+                            <center>  <canvas id="myChart"></canvas></center>
+                        </div>
+                        <div class="col-lg-3 col-md-3 text-center">   </div>
+                    </div>
+
+
+                </div>
+                <br /> <br /> <br />
+                <div class="row">
+                    <div class="col-lg-4 col-md-4 text-center">   </div>
+
+                    <div class="col-lg-4 col-md-4 text-center">
+
+                        <div class="mt-3">
+                            Tipos de casos durante el  @Html.Raw(ano) 
+                            <center>  <canvas id="myChart1" style="width:50%"></canvas></center>
+                        </div>
+
+                    </div>
+                    <div class="col-lg-4 col-md-4 text-center">   </div>
+                </div>
+                <br /> <br /> <br />
+
+                <div class="row">
+                    <div class="col-lg-1 col-md-1 text-center">   </div>
+                    <div class="col-lg-10 col-md-10 text-center">
+
+
+                        <div class="mt-10">
+                            Tiempos en dias de los casos de la CNH durante el @Html.Raw(ano)
+                            <center>  <canvas id="myChart2"></canvas></center>
+                        </div>
+                        <div class="col-lg-1 col-md-1 text-center">   </div>
+                    </div>
+
+
+                </div>
+
+                <br /> <br /> <br />
+
+                <div class="row">
+                    <div class="col-lg-1 col-md-1 text-center">   </div>
+                    <div class="col-lg-10 col-md-10 text-center">
+
+
+                        <div class="mt-10">
+                            Media de los tiempos de los @totalTiempo casos de la CNH durante el @Html.Raw(ano)
+                            <center><h1> <strong>  @Media dias</strong></h1></center>
+                            <small>
+                                <strong>NOTAS</strong>: Los datos estadísticos que muestran los tiempos de los casos, estarán incompletos solo durante el 2024, esto se debe a que los casos previos antes de la primera mitad del 2024, no consideraban el guardar la fecha del fin de los casos. La media de los dias de  duración de todos los casos, se calcula tomando en cuenta solo los casos que tienen fecha de inicio y fecha de fin.  Este sitio muestra los datos en tiempo real.
+                            </small>
+                        </div>
+                        <div class="col-lg-1 col-md-1 text-center">   </div>
+                    </div>
+
+
+                </div>
+
+
+
+            }
+            <br />
+            <hr />
+
+
+
+        </div>
+    </section>
+
+
+
+
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Corte Nacional de Honor <Br />Asociación de Scouts de México A.C. <br />Copyright &copy; CNH. Creata 2020</div>
+        </div>
+    </footer>
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+</body>
+</html>
+
+<script>
+    function Mandar() {
+        document.forms["forma1"].submit();
+    }
+
+    function Mandar2() {
+        document.forms["forma2"].submit();
+    }
+
+</script>
+
+
+<script>
+    //grafica 2
+    //1 revis 3 resuelto  5 faltan dat  6 recibid
+    const ctx = document.getElementById('myChart');
+    var barColors = ["green", "purple", "red", "navy"];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Resueltos', 'En revisión', 'Faltan datos', 'Recibidos'],
+            datasets: [{
+                label: '# de casos @ano',
+                backgroundColor: barColors,
+                data: [@TotResueltos, @TotRevision, @TotFaltanDatos, @TotRecibido],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+
+<script>
+    var xValues = ["Apelaciónes", "Interpretaciónes", "Reconocimientos", "Reconsideraciónes", "Negativa de respuesta"];
+    var yValues = [@TotalApelacion, @TotalInterpretacion, @TotalReconocimiento, @TotalReconsideracion, @TotalNegativa];
+    var barColors = [
+        "#b91d47",
+        "#00aba9",
+        "#2b5797",
+        "#e8cf01",
+        "#e8c3b9"
+    ];
+
+    new Chart("myChart1", {
+        type: "pie",
+        data: {
+            labels: xValues,
+            datasets: [{
+                backgroundColor: barColors,
+                data: yValues
+            }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: "Tipos de caso"
+            }
+        }
+    });
+</script>
+
+
+
+<script>
+
+    const ctx2 = document.getElementById('myChart2');
+    var barColors = ["#00aba9"];
+
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+
+            @{
+                string cadena0 = "labels: [";
+                string cadena1 = "";
+                string cadena2 = "";
+                string cadenaFinal = ";";
+                for(int i = 0; i<totalTiempo; i++)
+                {
+                    if (i< totalTiempo) {
+                        cadena1 = cadena1 + "'Caso " + (@i+1) + "',";
+                    }
+                    else {
+                        cadena1 = cadena1 + "'Caso " + (@i+1) + "'";
+                    }
+
+                }
+                cadena2= "],";
+                //labels: ['Caso 1', 'Caso 2', 'Caso 3', 'Caso 4'],
+                cadenaFinal = cadena0 + cadena1 + cadena2;
+                @Html.Raw(cadenaFinal);
+             }
+
+
+            datasets: [{
+                label: '# de dias ',
+                backgroundColor: barColors,
+                @{
+                    string cadenaa0= "data: [";
+                    string cadenaa1 = "";
+                    string cadenaa2 = "";
+                    string cadenafinall = "";
+
+                    for (int i = 0; i <totalTiempo; i++)
+                    {
+                        if (i < totalTiempo)
+                        {
+                            cadenaa1 = cadenaa1 + tiempos[i] + ",";
+                        }
+                        else {
+                            cadenaa1 = cadenaa1 + tiempos[i] + "";
+                        }
+                    }
+                    cadenaa2 = "],";
+                    // data: [1, 2, 3, 4],
+                    cadenafinall = cadenaa0 + cadenaa1 + cadenaa2;
+                    @Html.Raw(cadenafinall);
+                    }
+                    borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+
+
+
+
+
+@{
+
+    Conn.Close();
+    Conn.Dispose();
+}

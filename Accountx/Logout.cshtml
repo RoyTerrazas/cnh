@@ -1,0 +1,10 @@
+﻿@{
+    WebSecurity.RequireAuthenticatedUser();
+    string loggedout = "";
+    loggedout = Request["loggedout"];
+    WebSecurity.Logout();
+    Session.Clear();
+    Session.Abandon();
+    FormsAuthentication.SignOut(); //you write this when you use FormsAuthentication
+    Response.Redirect("../login?loggedout="+loggedout);
+}

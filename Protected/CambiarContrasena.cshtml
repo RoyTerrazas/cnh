@@ -1,0 +1,225 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Inicio";
+    var Conn = Database.Open("Dashboard");
+    string errorMessage = "";
+    int idusuario = WebSecurity.CurrentUserId;
+    string nombre = "";
+    string paterno = "";
+    string materno = "";
+    string email = "";
+    bool hasLocalAccount2 = OAuthWebSecurity.HasLocalAccount(WebSecurity.CurrentUserId);
+    WebSecurity.RequireAuthenticatedUser();
+    var action = Request.Form["action"];
+
+    string successMessage = "";
+    var message = Request.QueryString["message"];
+    switch (message)  {
+        case "ChangedPassword":
+            successMessage = "Su contraseña ha cambiado.";
+            break;
+        case "SetPassword":
+            successMessage = "Su contraseña se ha establecido.";
+            break;
+        case "RemovedLogin":
+            successMessage = "Se ha quitado el inicio de sesión externo.";
+            break;
+    }// switch
+
+    var externalLogins =
+       (from account in OAuthWebSecurity.GetAccountsFromUserName(WebSecurity.CurrentUserName)
+        let clientData = OAuthWebSecurity.GetOAuthClientData(account.Provider)
+        select new { Provider = account.Provider, ProviderDisplayName = clientData.DisplayName, UserId = account.ProviderUserId })
+       .ToList();
+    bool canRemoveLogin = externalLogins.Count > 1 || hasLocalAccount2;
+
+    // Validación de la instalación
+    if (hasLocalAccount2)
+    {
+        Validation.RequireField("currentPassword", "El campo de contraseña actual es obligatorio.");
+        Validation.Add("currentPassword",
+            Validator.StringLength(
+                maxLength: Int32.MaxValue,
+                minLength: 6,
+                errorMessage: "La contraseña actual debe contener al menos 6 caracteres"));
+    }// del if
+
+
+    Validation.RequireField("newPassword", "El campo de contraseña nueva es obligatorio.");
+    Validation.Add("confirmPassword",
+        Validator.Required("El campo de confirmar contraseña es obligatorio."),
+        Validator.EqualsTo("newPassword", "La nueva contraseña y la contraseña de confirmación no coinciden."));
+    Validation.Add("newPassword",
+        Validator.StringLength(
+            maxLength: Int32.MaxValue,
+            minLength: 6,
+            errorMessage: "La contraseña nueva debe contener al menos 6 caracteres"));
+
+
+
+    // script de seguridad
+    Functions.SeguridadAccesoRecursos(Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path)));
+
+    var sqlText00 = "SELECT Nombre,Paterno,materno,email FROM VUsuarioDatosRoles WHERE UserId=@0";
+    var C00 = Conn.QuerySingle(sqlText00, idusuario);
+    if (C00 != null)  {
+        nombre = C00.Nombre;
+        paterno = C00.Paterno;
+        materno = C00.materno;
+        email = C00.email;
+    }
+
+
+
+
+    if (IsPost) {
+     
+        if (action == "password") {
+            // Controlar operaciones de contraseña de cuenta local
+            var currentPassword = Request.Form["currentPassword"].Trim();
+            var newPassword = Request.Form["newPassword"].Trim();
+            var confirmPassword = Request.Form["confirmPassword"].Trim();
+
+            if (Validation.IsValid()) {
+                if (hasLocalAccount2) {
+
+                    if (newPassword=="" || newPassword==null || confirmPassword=="" || confirmPassword==null) {
+                        errorMessage = "Los campos de las claves no pueden dejarse en blanco";
+                    } else {
+                                if (newPassword.Trim() == confirmPassword.Trim())  {
+                                    if (WebSecurity.ChangePassword(WebSecurity.CurrentUserName.Trim(), currentPassword.Trim(), newPassword.Trim()))  {
+                                        Response.Redirect("CambiarContrasena?successMessage=1");
+                                        return;
+                                    }
+                                    else { errorMessage = "No se cambio la contraseña ya que la contraseña actual es incorrecta. Si no la recuerda póngase en contacto con el administrador del sistema de su dependencia para cambiarla."; }
+                                }
+                                else { errorMessage = "La nuevas nuevas contraseñas introducidas no coinciden."; }
+                         }
+
+                }
+
+            }
+            else  { errorMessage="El cambio de contraseña no se realizó correctamente. Corrija los errores e inténtelo de nuevo."; }
+        }
+
+    }//ispost
+
+
+}
+
+
+
+<form method="post">
+
+    @Html.ValidationSummary(excludeFieldErrors: true)
+    <div class="content-wrapper">
+      
+        <section class="content-header">
+            <h1> Cambiar contraseña
+                <small>Bienvenido a los servicios digitales del IMPE</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li class="active"><a href="#" title=""><i class="fa fa-unlock-alt"></i>Cambiar contraseña</a></li>
+            </ol>
+        </section>
+        <section class="content">
+            @if (errorMessage != "") {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+            }
+            @if (Convert.ToInt32(Request.QueryString["successMessage"]) == 1)
+            {
+            <div class="alert alert-success">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>Éxito</h4>
+                La contraseña se ha cambiado adecuadamente, gracias.
+            </div>
+            }
+            @if (hasLocalAccount2)
+            {
+            }
+            else
+            {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                No dispone de una contraseña local para este sitio.
+            </div>
+            }
+
+            <div class="box box-default color-palette-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-unlock-alt"></i> Ingrese los datos para cambiar su contraseña.</h3>
+                </div>
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label> <strong>Nombre: </strong></label>
+                                <input type="text" class="form-control" readonly value="@Html.Raw(nombre.ToUpper().Trim() + " " + paterno.ToUpper().Trim() + " " + materno.ToUpper().Trim())" placeholder="Nombre" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label> <strong>Cuenta con la que ingreso: </strong></label>
+                                <input type="text" class="form-control" readonly value="@email.ToUpper()" placeholder="Cuenta" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                             
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <label for="currentPassword" @if (!ModelState.IsValidField("currentPassword")) { <text> class="error-label" </text>  }>* Contraseña actual:</label>
+                            <input type="password" style="height:33px" id="currentPassword" class="form-control" title="Password actual" placeholder="Contraseña actual" maxlength="15" required name="currentPassword" @Validation.For("currentPassword") />
+                            @Html.ValidationMessage("currentPassword")
+
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="newPassword" @if (!ModelState.IsValidField("newPassword")) { <text> class="error-label" </text>  }>* Nueva contraseña:</label>
+                            <input type="password" style="height:33px" id="newPassword" required maxlength="15" title="Nuevo password" class="form-control" placeholder="Nueva contraseña" name="newPassword" @Validation.For("newPassword") />
+                            @Html.ValidationMessage("newPassword")
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="confirmPassword" @if (!ModelState.IsValidField("confirmPassword")) { <text> class="error-label" </text>  }>* Confirmar nueva contraseña:</label>
+                            <input type="password" style="height:33px" id="confirmPassword" maxlength="15" title="Confirmar el nuevo password" required class="form-control" placeholder="Confirmar la nueva contraseña" name="confirmPassword" @Validation.For("confirmPassword") />
+                            @Html.ValidationMessage("confirmPassword")
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer">
+
+                @if (hasLocalAccount2) {
+                <br>
+                <div class="form-actions">
+                    <div class="col-sm-10">Si usted olvido la contraseña, debera solicitar el cambio con el administrador.</div>
+                    <div class="col-sm-1">    <input type="button" id="Cancelar" title="Cancelar" class="btn pull-right " value="Cancelar" onClick="location.href = 'inicio' ">  </div>
+                    <div class="col-sm-1">    <button type="submit" name="action" title="Aceptar" class="btn pull-right bg-purple" value="password">Aceptar</button>      </div>
+                </div>
+                }
+                else  {
+                <button type="submit" name="action" value="password">Cambiar contraseña</button>
+                }
+                    
+                </div>
+            </div>
+        </section>
+
+    </div>
+</form>
+
+@{ 
+        Conn.Close();
+        Conn.Dispose();
+}
+
+
+
+

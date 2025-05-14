@@ -1,0 +1,199 @@
+﻿@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Quien visualizo este documento";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+
+    string id_folio = "";
+    id_folio = Request.Form["id_folio"];
+    bool descargado1 = false, descargado2 = false, descargado3 = false;
+    string Nombre_quien_presenta = "", Estatus = "", resumen = "", tipo = "", nombre_actual = "", asignado = "";
+    string Msg = "";
+
+
+
+
+    var sqlTexto0 = "select * from VSolicitudTramiteLeidas where id_TSolicitudTramite=@0";
+    var C00 = Conn.QuerySingle(sqlTexto0, id_folio);
+    if (C00 != null)    {
+        nombre_actual = C00.nombre + " " + C00.paterno + " " + C00.materno;
+        if (C00.descargado1 == null) { descargado1 = false; } else { descargado1 = C00.descargado1; }
+        if (C00.descargado2 == null) { descargado2 = false; } else { descargado2 = C00.descargado2; }
+        if (C00.descargado3 == null) { descargado3 = false; } else { descargado3 = C00.descargado3; }
+
+        var sqlTexto = "select nombre,descrip,descrip_tipo_caso,resumen,asignado from VSolicitudTramite where id=@0";
+        var C0 = Conn.QuerySingle(sqlTexto, id_folio);
+        if (C0 != null)
+        {
+            Nombre_quien_presenta = C0.nombre;
+            Estatus = C0.descrip;
+            tipo = C0.descrip_tipo_caso;
+            resumen = C0.resumen;
+            asignado = Convert.ToString(C0.Asignado);
+        }
+
+    }
+    else { Msg = "El caso aún no ha sido visualizado por ningún integrante de la corte."; }
+
+    string status = Request["status"];
+
+
+}
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Visualizaciones <small> Quien visualizo este documento @id_folio</small> </h1>
+        <ol class="breadcrumb">
+            
+             <li><a href="default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="AdminSolicitudes?status=@status" title="Administración de solicitudes"><i class="fa fa-clone"></i>Adm. solicitudes</a></li>
+            <li class="active">Visualizaciones</li>
+        
+         </ol>
+    </section>
+
+    <section class="content">
+
+
+
+        <div class="box box-default color-palette-box">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa fa-tag"></i> Visualización de los casos de la corte</h3>
+            </div>
+            <div class="box-body">
+
+                <div class="row">
+                    <div class="col-sm-12 col-md-12">
+                        <h4 class="text-left"><strong>DATOS DEL CASO</strong></h4>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-8 col-md-8">
+                        <h4 class="text-left">Resumen: @resumen  @if (Msg != "")  {<strong><font color="red">@Msg  </font></strong> }</h4>
+                    </div>
+
+                    <div class="col-sm-4 col-md-4">
+                        <h4 class="text-center">
+                            Asignado a:
+
+                            @{var sqlTextov = "select nombre_consejero from TConsejeros where id=@0";
+                                var C01 = Conn.QuerySingle(sqlTextov, asignado);
+                                if (C01 != null)
+                                {@Html.Raw(C01.nombre_consejero);
+                                }
+                                else
+                                { @Html.Raw("No asignado");
+                                }
+                            }
+
+
+
+
+                        </h4>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-1 col-md-1">
+                        <h4 class="text-left">Folio: @id_folio</h4>
+                    </div>
+                    <div class="col-sm-4 col-md-4">
+                        <h4 class="text-center">Interpone: @Nombre_quien_presenta</h4>
+                    </div>
+                    <div class="col-sm-2 col-md-2">
+                        <h4 class="text-center">Estatus: @Estatus</h4>
+                    </div>
+                    <div class="col-sm-2 col-md-2">
+                        <h4 class="text-center">Tipo: @tipo</h4>
+                    </div>
+          
+               </div>
+
+                <br />
+  
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title">QUIEN HA REVISADO ESTA INFORMACIÓN:</h3>
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body no-padding">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <tr>
+                                    <th>Nombre:</th>
+                                    <th>Abrio solicitud el</th>
+                                    <th>¿ Descargo archivo 1 ?</th>
+                                    <th>¿ Descargo archivo 2 ?</th>
+                                    <th>¿ Descargo archivo 3 ?</th>
+                                </tr>
+
+
+                                @{ string selectQueryString0 = " select * from VSolicitudTramiteLeidas where id_TSolicitudTramite=@0";        }
+                                @foreach (var rowD in Conn.Query(selectQueryString0, id_folio)) {
+                                <tr>
+                                    <td>@rowD.nombre @rowD.paterno @rowD.materno</td>
+                                    <td>@rowD.fecha_leido</td>
+
+                                    <td>
+                                        @if (rowD.descargado1 == null)  {@Html.Raw("No descargado"); }
+                                        else { if (rowD.descargado1==true) {@Html.Raw("<font color=green><strong>Descargado</strong></font>"); } else {@Html.Raw("No descargado");   } }
+                                    </td>
+
+                                    <td>
+                                        @if (rowD.descargado2 == null) {@Html.Raw("No descargado"); }
+                                        else  { if (rowD.descargado2 == true)     {@Html.Raw("<font color=green><strong>Descargado</strong></font>"); }  else  {@Html.Raw("No descargado"); }}
+                                    </td>
+
+                                    <td>
+                                        @if (rowD.descargado3 == null)   {@Html.Raw("No descargado"); }
+                                        else    { if (rowD.descargado3 == true)   {@Html.Raw("<font color=green><strong>Descargado</strong></font>");}   else    {@Html.Raw("No descargado");  }}
+                                    </td>
+                            
+                                </tr>
+
+                                }
+
+
+
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-sm-12">&nbsp;</div>
+                    <div class="col-sm-12"><button type="button" class="btn btn-default pull-right" onclick="Cancelar('@status');">ACEPTAR</button></div>
+                  
+                </div>
+
+  
+    
+            </div>
+         
+        </div>
+
+
+
+
+
+    </section>
+
+</div>
+
+
+<script>
+function Cancelar(a) {
+    location.replace("AdminSolicitudes?status="+a);
+}
+</script>
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

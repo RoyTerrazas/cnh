@@ -1,0 +1,379 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Administración de cuentas de usuarios";
+    var ConnPrestamos = Database.Open("Dashboard");
+    var sesion = 0;
+    int dependencia = 0;
+    string idd = "";
+    bool habilitado = false;
+    int TipoCuenta = 0;
+    string borrar = "", Rol = "";
+    string dependenciaFiltrada = "", TipoUsr = "", RolFiltrado="", Id_RolCargado="";
+    string cantidadVotos = "";
+    string Id_CProvincias_Carg = "";
+    string provincia = "", tipo_rol = "";
+    string Pr = "", TC = "";
+
+    provincia = Request.Form["provincia"];
+    tipo_rol = Request.Form["tipo_rol"];
+
+
+
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("SinPermiso"); }
+
+    var sqlText01 = "SELECT RoleId,Id_provincias FROM VUsuarioDatosRoles WHERE Userid=@0";
+    var C01 = ConnPrestamos.QuerySingle(sqlText01, WebSecurity.CurrentUserId);
+    if (C01 != null) { sesion = Convert.ToInt32(C01.RoleId); Id_CProvincias_Carg = Convert.ToString(C01.Id_provincias); Id_RolCargado= Convert.ToString(C01.RoleId); }
+    idd = Request.Form["idd"];
+    borrar = Request.Form["borrar"];
+    if ((idd != null || idd != "") && borrar == "1")    {
+        if (idd != "1")        {// asi no borro al adm
+            var deleteCommand = "DELETE FROM UserProfile WHERE UserId = @0";
+            ConnPrestamos.Execute(deleteCommand, idd);
+            Response.Redirect("AdministracionCuentas?provincia=" + provincia+ "&tipo_rol=" + tipo_rol);
+        }
+    }
+
+    var sqlText01n = "SELECT RoleId FROM webpages_UsersInRoles WHERE Userid=@0";
+    var C01n = ConnPrestamos.QuerySingle(sqlText01n, WebSecurity.CurrentUserId);
+    if (C01n != null) { TipoCuenta = C01n.RoleId; }
+
+    //-----------------------------------------------------------------------------------------
+    if (IsPost) { TipoUsr = Request.Form["TipoUsr"]; RolFiltrado = Request.Form["RolFiltrado"]; }
+    if (!IsPost)    {
+        RolFiltrado = Convert.ToString(TipoCuenta);
+        if (TipoCuenta == 6) { TipoUsr = "0"; } else { TipoUsr = "1"; }
+    }
+    //tipo de cuenta 1 sadmin, 2 admin
+
+    if (IsPost) {
+        Id_CProvincias_Carg = Request["provincia"];
+        Id_RolCargado= Request["tipo_rol"];
+    }
+
+
+    if (tipo_rol == null){
+        Id_RolCargado = "";
+
+    }
+
+}
+<form method="post" name="forma">
+    <div class="content-wrapper">
+        <section class="content-header">
+            <h1>
+                Administración de cuentas de usuarios
+                <small>Cuentas de usuarios por dependencias</small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+                <li><a href="#" title="Administración de usuarios"><i class="fa  fa-user"></i> Administración de usuarios</a></li>
+            </ol>
+        </section>
+
+        <section class="content">
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="box">
+                        <div class="box-header">    <i class="fa  fa-user"></i> Administración de usuarios del sistema<br />   </div>
+
+                        <div class="box-body">
+                            <div class="row">
+
+                          
+
+                                <div class="col-sm-3 text-left">
+                                    @{  
+                                        string selectQueryStringg = "";
+                                        if (TipoCuenta==1) { selectQueryStringg = "SELECT RoleId,RoleName from webpages_Roles order by RoleName"; }
+                                        if (TipoCuenta == 2) { selectQueryStringg = "SELECT RoleId,RoleName from webpages_Roles where RoleId<>1 order by RoleName"; }
+
+
+
+
+                                        }
+                                    <select id="tipo_rol" name="tipo_rol" required class="form-control  select" onchange="forma.submit()">
+                                        <option value="">Seleccione</option>
+                                        @foreach (var row in ConnPrestamos.Query(selectQueryStringg))  {
+                                            <option value="@row.RoleId" @if (Id_RolCargado == Convert.ToString(row.RoleId)) { @Html.Raw("selected")  ; }>@row.RoleName.ToUpper()</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-sm-2 text-right">
+                                    <button type="button" class="btn  bg-purple" title="Nuevo" onclick="window.location.href='NuevoUsuario'">Nuevo </button><br />
+                                </div>
+<!--
+                                <div class="col-sm-2 text-right">
+                                    <button type="button" class="btn  bg-purple" title="Nuevo por medio del Regnal" onclick="window.location.href='elecciones/ImportarDeRegnal'">Nuevo usuario Regnal</button><br />
+                                </div>
+-->
+
+                                <div class="col-sm-2 text-right"> &nbsp;            </div>
+                            </div>
+                            <br />
+                            <div class="table-responsive">
+                                <table id="example1" class="table table-bordered table-striped ">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Usuario</th>
+                                     
+                                      
+                                         
+                                       
+                                            <th>¿Puede aceder?</th>
+                                            <th>Tipo cuenta</th>
+                                            <th>Opciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var selectQueryString = "";
+                                            int grupo = 0;
+
+
+
+                                            if (tipo_rol == null )
+                                            {
+                                                selectQueryString = "SELECT nombre,paterno,materno,userid,roleid,habilitado,rolename,email,cum FROM VUsuarioDatosRoles where Userid<>1 and habilitado=1 ORDER BY paterno, nombre";
+                                            }
+
+                                            else {
+                                                selectQueryString = "SELECT nombre,paterno,materno,nombre_provincia,userid,roleid,habilitado,rolename,email,cum FROM VUsuarioDatosRoles where roleid=@0 and Userid<>1 ORDER BY paterno, nombre";
+
+                                            }
+
+                                            //if (tipo_rol == "" && provincia != "")
+                                            // {
+                                            //selectQueryString = "SELECT nombre,paterno,materno,nombre_provincia,userid,roleid,habilitado,rolename,email,cum FROM VUsuarioDatosRoles where id_provincias=@1 and Userid<>1 ORDER BY paterno, nombre";
+                                            //}
+
+                                            //if (tipo_rol != "" )
+                                           // {
+                                            //    selectQueryString = "SELECT nombre,paterno,materno,nombre_provincia,userid,roleid,habilitado,rolename,email,cum FROM VUsuarioDatosRoles where roleid=@0 and Userid<>1 ORDER BY paterno, nombre";
+                                           // }
+
+                                            // if ( tipo_rol !=null &&  provincia!=null)
+                                            // {
+                                            // selectQueryString = "SELECT nombre,paterno,materno,nombre_provincia,userid,roleid,habilitado,rolename,email,cum FROM VUsuarioDatosRoles where roleid=@0 and id_provincias=@1 and Userid<>1 ORDER BY paterno, nombre";
+                                            // }
+                                        }
+
+                                        @foreach (var row in ConnPrestamos.Query(selectQueryString, tipo_rol, provincia))
+                                        {
+
+                                       
+
+
+                                            <tr>
+                                                <td> <small>@row.nombre.ToUpper() @row.paterno.ToUpper()   @if (row.Materno == "")
+                                                {@row.Materno }
+                                            else
+                                            { @row.Materno.ToUpper()}  </small></td>
+                                                <td> <small>@row.email </small></td>
+                                            
+                                             
+
+                                                <td align="center"><small> @if (row.habilitado == true)
+                                                {@Html.Raw("SÍ");
+                                            }
+                                            else
+                                            {@Html.Raw("NO");
+                                        } </small></td>
+                                                <td>
+                                                    <small>
+                                                        @{ var sqlText = "SELECT Roleid FROM webpages_UsersInRoles WHERE Userid=@0";
+                                                            var Ce = ConnPrestamos.QuerySingle(sqlText, @row.userid);
+                                                            if (Ce != null)
+                                                            {
+                                                                var sqlText2 = "SELECT Rolename FROM webpages_Roles WHERE RoleId=@0";
+                                                                var Ce2 = ConnPrestamos.QuerySingle(sqlText2, Ce.Roleid);
+                                                                if (Ce2 != null)
+                                                                { @Html.Raw(Ce2.Rolename);
+                                                            }
+                                                        }
+                                                        }
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    @if (sesion != 1 && row.RoleId == 1)
+                                                    {//super admin
+                                                        <div class="btn-group">
+                                                            <button type="button" class="btn btn-default" disabled><small>Acciones</small></button>
+                                                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" disabled>
+                                                                <span class="caret"></span>
+                                                                <span class="sr-only">Opciones</span>
+                                                            </button>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a href="javascript:Editar('@row.Userid',@row.id_provincias,@row.roleid);">Editar</a></li>
+                                                                <li><a href="javascript:CambiarContrasena(@row.Userid,@row.id_provincias,@row.roleid);">Contraseña</a></li>
+                                                                <li class="divider"></li>
+                                                                @{//para que no se borra a los sadmin
+                                                                    if (row.RoleName != "SAdmin")
+                                                                    {
+                                                                        <li><a href="javascript:BorrarConParametro('@row.Userid',@row.id_provincias,@row.roleid);" data-confirm="¿Esta seguro que desea borrar el registro?">Borrar</a></li>
+ }
+                                                                    else
+                                                                    {//si si es sadmin
+                                                                        if (TipoCuenta == 1 && sesion == 1)
+                                                                        { // solo un sadmin puede borrar a otro
+                                                                            <li><a href="javascript:BorrarConParametro('@row.Userid',@row.id_provincias,@row.roleid);" data-confirm="¿Esta seguro que desea borrar el registro, es un super administrador?"><font color="red">¿Borrar SAdmin?</font></a></li>
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                            </ul>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="btn-group">
+                                                            <button type="button" class="btn btn-default">Acciones</button>
+                                                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                                <span class="caret"></span>
+                                                                <span class="sr-only">Opciones</span>
+                                                            </button>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a href="javascript:Editar('@row.Userid');">Editar</a></li>
+                                                                <li><a href="javascript:CambiarContrasena(@row.Userid);">Cambiar contraseña</a></li>
+                                                                <li class="divider"></li>
+                                                                @{//para que no se borra a los sadmin
+                                                                    if (row.RoleName != "SAdmin")
+                                                                    {
+                                                                        <li><a href="javascript:BorrarConParametro('@row.Userid');" data-confirm="¿Esta seguro que desea borrar el registro?">Borrar</a></li>
+                                                                    }
+                                                                    else
+                                                                    {//si si es sadmin
+                                                                        if (TipoCuenta == 1 && sesion == 1)
+                                                                        { // solo un sadmin puede borrar a otro
+                                                                            <li><a href="javascript:BorrarConParametro('@row.Userid');" data-confirm="¿Esta seguro que desea borrar el registro, es un super administrador?"><font color="red">¿Borrar SAdmin?</font></a></li>
+                                                                        }
+
+                                                                    }
+                                                                }
+
+                                                            </ul>
+                                                        </div>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table><br />
+                            </div>
+                            <input type="hidden" name="accion" id="accion" value="" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</form>
+
+@{ 
+    ConnPrestamos.Close();
+    ConnPrestamos.Dispose();
+
+ }
+<script type="text/javascript">
+    function CambiarContrasena(id, Prov, RoleId) {  //https://stackoverflow.com/questions/1350917/send-post-variable-with-javascript
+        // funcion que crea una forma dinamica y postea datos a otra
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'EditarContrasena');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'provincia');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', Prov);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'Id_RolCargado');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', RoleId);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        form.appendChild(myvar2);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script type="text/javascript">
+    function Editar(A,Prov,RoleId) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'NuevoUsuario');
+
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'idd');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', A);
+
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'provincia');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', Prov);
+
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'Id_RolCargado');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', RoleId);
+
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        form.appendChild(myvar2)
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script type="text/javascript">
+    function BorrarConParametro(A, Prov, RoleId) {
+       // var r = confirm("¿Estas seguro que deseas borrar el registro?, esta acción no se puede deshacer.");
+       // if (r == true) {
+            form = document.createElement('form');
+            form.setAttribute('method', 'POST');
+            form.setAttribute('action', 'AdministracionCuentas');
+
+            myvar = document.createElement('input');
+            myvar.setAttribute('name', 'idd');
+            myvar.setAttribute('type', 'hidden');
+            myvar.setAttribute('value', A);
+
+            myvar1 = document.createElement('input');
+            myvar1.setAttribute('name', 'borrar');
+            myvar1.setAttribute('type', 'hidden');
+            myvar1.setAttribute('value', 1);
+
+            myvar2 = document.createElement('input');
+            myvar2.setAttribute('name', 'provincia');
+            myvar2.setAttribute('type', 'hidden');
+            myvar2.setAttribute('value', Prov);
+
+            myvar3 = document.createElement('input');
+            myvar3.setAttribute('name', 'Id_RolCargado');
+            myvar3.setAttribute('type', 'hidden');
+            myvar3.setAttribute('value', RoleId);
+
+            form.appendChild(myvar);
+            form.appendChild(myvar1);
+            form.appendChild(myvar2);
+            form.appendChild(myvar3);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+ 
+      // }
+</script>

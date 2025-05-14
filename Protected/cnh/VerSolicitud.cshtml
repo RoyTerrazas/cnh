@@ -1,0 +1,1053 @@
+﻿
+@using System.Configuration;
+
+@{
+    var Conn = Database.Open("Dashboard");
+    Layout = "~/Protected/_Site_Layout.cshtml";
+    Page.Title = "Ver solicitud";
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false) { Response.Redirect("AdminError"); }
+
+    string status = "", entre = "", mensaje = "", MandarComentarios = "", formita = "", mandado = "", MsgErr = "", nivel = "", NivelMandado = "", Id_Provincia = "", EmailMandar = "", jsn = "", psn = "";
+    status = Request["status"];
+
+    int rol = 0;
+    var sqlText02 = "SELECT RoleId FROM webpages_UsersInRoles WHERE UserId=@0";
+    var C02 = Conn.QuerySingle(sqlText02, WebSecurity.CurrentUserId);
+    if (C02 != null) { rol = Convert.ToInt32(C02.RoleId); }
+
+    // conexion a la bd
+    string idPersona = "", folioTramite = "";
+    idPersona = Request["id"];
+    folioTramite = Request["id"];
+    entre = Request["entre"];
+    mensaje = Request.Form["mensaje"];
+    MandarComentarios = Request.Form["MandarComentarios"];
+    formita = Request.Form["formita"];
+    mandado = Request.Form["mandado"];
+    NivelMandado = Request.Form["NivelM"];
+    Id_Provincia = Request.Form["Id_Provincia"];
+    jsn = Request.Form["jsn"];
+    psn = Request.Form["psn"];
+
+    string rutaArch = "";
+    string numacuerdo = "";
+
+
+    //variable global para saber si es localhost y evitar errores de mandado de emails
+    // se debe incluir la libreria System.Configuration
+    string EsLocalHost = ConfigurationManager.AppSettings["PlataformaLocal"];
+    //-------------------------------------------
+
+
+
+    //---------------------------------------------------------
+    //poner aqui quien leyo
+    int id_usuario_actual = 0;
+    DateTime localDate = DateTime.Now;
+    id_usuario_actual = WebSecurity.CurrentUserId;
+
+    string nombre = "", cum = "", textoSolicitud = "", rutaArchivo1 = "", rutaArchivo2 = "", rutaArchivo3 = "", resumen = "", nombreProv = "", descripEstatus = "", email = "", notasCargadas = "";
+    int idEstatusCargado = 0;
+    DateTime fechaSolicitud = new DateTime();
+    string NotasLoaded = "", estatus = "", consejero = "", asignado = "", Id_Provincias = "";
+    int Id_tipoCaso = 0, Tipo = 0;
+    bool verArch1 = false, verArch2 = false, verArch3 = false;
+    //------------CARGADO-------------------------------
+
+    var sqlText = "SELECT nombre,cum,TextoSolicitud,resumen,Nombre_provincia,Descrip,RutaArchivo1,RutaArchivo2,fecha,estatus,email,NotasCaso,RutaArchivo3,asignado,Id_CtipoCaso,nivel,Id_Provincias FROM VSolicitudTramite where id=@0 ";
+    var C0 = Conn.QuerySingle(sqlText, idPersona);
+    if (C0 != null)
+    {
+        nombre = C0.nombre;
+        cum = C0.cum;
+        textoSolicitud = C0.TextoSolicitud;
+        resumen = C0.resumen;
+        nombreProv = C0.Nombre_provincia;
+        descripEstatus = C0.Descrip;
+        rutaArchivo1 = C0.RutaArchivo1;
+        rutaArchivo2 = C0.RutaArchivo2;
+        rutaArchivo3 = C0.RutaArchivo3;
+        fechaSolicitud = C0.fecha;
+        idEstatusCargado = C0.estatus;
+        email = C0.email;
+        notasCargadas = C0.NotasCaso;
+        asignado = Convert.ToString(C0.Asignado);
+        Id_tipoCaso = C0.Id_CtipoCaso;
+        nivel = Convert.ToString(C0.nivel);
+        Id_Provincias = Convert.ToString(C0.Id_Provincias);
+    }
+
+    //--------------------esta es la seccion de ingresos del chat entre la corte-------------------------------------
+    string BorrarComentario = Request.Form["BorrarComentario"];
+    string IdABorrar = Request.Form["IdABorrar"];
+    if (BorrarComentario == "1" && IsPost && IdABorrar != "")
+    {
+        var deleteCommand0 = "DELETE FROM TComentariosCorte WHERE id= @0";
+        Conn.Execute(deleteCommand0, IdABorrar);
+        Response.Redirect("verSolicitud?id=" + idPersona + "&status=" + status + "&entre=1");
+    }
+
+    //cargar datos de los acuerdos
+    var sqlText2 = "SELECT * FROM TAcuerdosCNH where IdCasoAsignado=@0 ";
+    var C2 = Conn.QuerySingle(sqlText2, idPersona);
+    if (C2 != null)
+    {
+        rutaArch = C2.RutaArchivo;
+        numacuerdo = C2.numacuerdo;
+    }
+
+    //----------------------------------------------------------------------------------------------------------------
+    if (IsPost && formita == "1")
+    {
+        if (mensaje != "")
+        {
+
+            // ya que los miembros de la corte se menten en la tabla tconsejeros y es separado de la tabla de las cuentas user profile
+            //se ligan por medio del cum
+
+            // con el cum en la tabla de userprofile se debe buscar el id del miembro de la corte en la tconsejeros
+            string IdDeTConsejeros = "", cumact = "";
+            var ver1 = "select userid,cum from [dbo].[VDatosCompletosUsuario] where userid=@0";
+            var Cum1 = Conn.QuerySingle(ver1, WebSecurity.CurrentUserId);
+            if (Cum1 != null)
+            {
+                cumact = Cum1.cum.Trim();
+
+                // seleccionar el cum de la tabla de consejeros
+                var ver2n = "select id from TConsejeros where cum='" + cumact + "'";
+                var con1 = Conn.QuerySingle(ver2n, cumact);
+                if (con1 != null) { IdDeTConsejeros = Convert.ToString(con1.id); }
+                else { IdDeTConsejeros = "0"; }
+                if (IdDeTConsejeros != "0")
+                {
+                    //revisar si no esta dado de alta para no meter duplicado
+                    // var sqlText1y = "select * from TComentariosCorte where comentarios=@0 and Id_TSolicitudTramite=@1 and Id_TConsejeros=@2 and Fecha=@3";
+                    var sqlText1y = "select * from [dbo].[TComentariosCorte] where [Comentarios]='@0'and [Id_TSolicitudTramite]=@1 and [Id_TConsejeros]=@2";
+                    var Cy1 = Conn.QuerySingle(sqlText1y, mensaje.Trim(), folioTramite, IdDeTConsejeros);
+                    if (Cy1 == null)
+                    {
+                        //ingresar los mensajes de chat en la ocmunicacion interna de la corte
+                        var insertCommand = "INSERT TComentariosCorte(Id_TSolicitudTramite,Id_TConsejeros,Comentarios,Fecha) Values(@0,@1,@2,@3)";
+                        Conn.Execute(insertCommand, folioTramite, IdDeTConsejeros, mensaje, localDate);
+                        mensaje = null;
+                        MandarComentarios = "0";
+                        Response.Redirect("verSolicitud?id=" + idPersona + "&status=" + status + "&entre=1");
+                    }
+                }
+                else
+                {
+                    MsgErr = "NO SE PUEDE INGRESAR EL COMENTARIO, DEBE DE DAR DE ALTA EL CUM DE ESTA CUENTA EN LA LISTA DE LOS MIEMBROS DEL CONSEJO EN LA SECCIÓN: SERVICIOS/MIEMBROS DE LA CORTE";
+                }
+
+            }
+
+        }
+    }
+
+
+    else
+    {
+
+
+        //aqui se hacen las operaciones
+        //revisar lo de los archivos-------------------------------------
+        if (rutaArchivo1 != null) { if (rutaArchivo1 != "") { verArch1 = true; } }
+        if (rutaArchivo2 != null) { if (rutaArchivo2 != "") { verArch2 = true; } }
+        if (rutaArchivo3 != null) { if (rutaArchivo3 != "") { verArch3 = true; } }
+        //-----------EDIT--------------------------------
+        if (IsPost & mandado == "1")
+        {
+            DateTime thisDay = DateTime.Today;
+            status = Request["status"];
+            NotasLoaded = Request.Form["notas"];
+            estatus = Request.Form["estatus"];
+            idPersona = Request.Form["id"];
+            consejero = Request.Form["consejero"];
+            Tipo = Convert.ToInt16(Request.Form["tipo"]);
+            var sqlTextu = "SELECT email FROM VSolicitudTramite where id=@0 ";
+            var C0u = Conn.QuerySingle(sqlTextu, idPersona);
+            if (C0u != null) { email = C0u.email; }
+            if (idPersona != null)
+            {
+                if (estatus != "")
+                {
+
+                    //insertar la fecha de resuelto
+
+                    if (estatus == "3")
+                    {
+                        //aqui entra cuando esta resuelto notificado por lo que aplica la fecha de notificacion
+                        //se debe de insertar la fecha en la que el caso fue resuelto para sacar tiempos porteriores
+                        var updateCommandI = "UPDATE TSolicitudTramite SET fechaNotificacion=@0 where id=@1";
+                        Conn.Execute(updateCommandI, thisDay, idPersona);
+                    }
+
+                    if (estatus == "7")
+                    {
+                        //aqui entra cuando esta resuelto sin notificar por lo que aplica la fecha de cierre
+                        //se debe de insertar la fecha en la que el caso fue resuelto para sacar tiempos porteriores
+                        var updateCommandI = "UPDATE TSolicitudTramite SET fechaCierre=@0 where id=@1";
+                        Conn.Execute(updateCommandI, thisDay, idPersona);
+                    }
+
+
+
+                    var updateCommand = "UPDATE TSolicitudTramite SET estatus=@0,NotasCaso=@1,Asignado=@2,id_CTipoCaso=@3 where id=@4";
+                    Conn.Execute(updateCommand, estatus, NotasLoaded, consejero, Tipo, idPersona);
+                    //mandar correos cuando ya se resolvio el caso y cuando le faltan datos
+                    //caso en estatus faltan datos
+                    if (estatus == "5")
+                    {
+                        if (EsLocalHost != "1")
+                        {
+                            WebMail.Send(to: email, subject: "ACTUALIZACIÓN DE LA SOLICITUD DE REVISIÓN ANTE LA CNH ", body: " Le comunicamos que su solicitud de trámite ante la CNH con folio: " + idPersona + " ha sido revisada y se ha encontrado que le FALTAN DATOS, favor de ingresar con su folio y CUM a: http://www.cnhscouts.org.mx/WebCNH/seguimiento para revisar las notas del caso. Siempre Listos para Servir. Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                        }
+                    }
+                    //caso en estatus resuelto notificado
+                    if (estatus == "3")
+                    {
+                        if (EsLocalHost != "1")
+                        {
+                            WebMail.Send(to: email, subject: "RESOLUCIÓN DE REVISIÓN ANTE LA CNH ", body: "Le comunicamos que la solicitud de trámite ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA Y NOTIFICADA, el documento con la resolución se le hara llegar por las vias institucionales correspondientes. Gracias por usar nuestros servicios digitales.  Siempre Listos para Servir. Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                        }
+                    }
+
+                    //mandar email segun el nivel de la persona
+
+
+                    var sqlProv = "select * from TEmail where Id_CProvincias=@0";
+                    var CEmail = Conn.QuerySingle(sqlProv, Id_Provincia);
+                    if (CEmail != null)
+                    {
+                        EmailMandar = CEmail.correo;
+
+                        switch (NivelMandado)
+                        {
+
+                            case "1": //nivel grupo mandar a presidente
+                                if (EsLocalHost != "1")
+                                {
+                                    WebMail.Send(to: EmailMandar, subject: "SE INGRESO UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado Presidente de Provincia le comunicamos que una solicitud de trámite a nivel grupo ante la Corte Nacional de Honor con folio: " + idPersona + " de su provincia ha sido RESUELTA, el documento con la resolución se le hara llegar por las vias institucionales correspondientes, una vez recibido le pedimos lo entregue a la persona que corresponda. Muchas gracias. CNH. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                                }
+                                break;
+
+
+                            case "3": // nivel provincia mandar a JSN y presidente
+                                if (EsLocalHost != "1")
+                                {
+                                    WebMail.Send(to: EmailMandar, subject: "RESOLUCIÓN DE UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado Presidente de Provincia le comunicamos que una solicitud de trámite a nivel provincia ante la Corte Nacional de Honor con folio: " + idPersona + " de su provincia ha sido RESUELTA, el documento con la resolución se le hara llegar por las vias institucionales correspondientes, una vez recibido le pedimos lo entregue a la persona que corresponda. Muchas gracias. CNH. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                                }
+
+                                if (jsn == "on")
+                                {
+                                    if (EsLocalHost != "1")
+                                    {
+                                        WebMail.Send(to: "jefatura.nacional@scouts.org.mx", subject: "RESOLUCIÓN DE UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado JSN le comunicamos que una solicitud de trámite a nivel provincia ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA. Muchas gracias. CNH. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                                    }
+                                }
+                                if (psn == "on")
+                                {
+                                    if (EsLocalHost != "1")
+                                    {
+                                        WebMail.Send(to: "presidente.nacional@scouts.org.mx", subject: "RESOLUCIÓN DE UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado JSN le comunicamos que una solicitud de trámite a nivel provincia ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA. Muchas gracias. CNH. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                                    }
+                                }
+                                break;
+
+                            case "4": // nivel nacional mandar a JSN
+
+                                if (jsn == "on")
+                                {
+                                    if (EsLocalHost != "1")
+                                    {
+                                        WebMail.Send(to: "jefatura.nacional@scouts.org.mx", subject: "RESOLUCIÓN DE UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado PSN le comunicamos que una solicitud de trámite a nivel nacional ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA, la CNH le hara llegar este documento en breve por vias institucionales. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+                                    }
+                                }
+                                if (psn == "on")
+                                {
+                                    if (EsLocalHost != "1")
+                                    {
+                                        WebMail.Send(to: "presidente.nacional@scouts.org.mx", subject: "RESOLUCIÓN DE UNA SOLICITUD DE REVISIÓN DE CASO ANTE LA CNH", body: "Estimado PSN le comunicamos que una solicitud de trámite a nivel provincia ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA. Muchas gracias. CNH. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                                    }
+                                }
+
+                                break;
+
+
+                        }
+
+
+
+
+                    }
+
+
+                    //caso en estatus resuelto No notificado
+                    if (estatus == "7")
+                    {
+                        if (EsLocalHost != "1")
+                        {
+                            WebMail.Send(to: email, subject: "RESOLUCIÓN DE REVISIÓN ANTE LA CNH ", body: "Le comunicamos que la solicitud de trámite ante la Corte Nacional de Honor con folio: " + idPersona + " ha sido RESUELTA Y PRÓXIMAMENTE SERÁ NOTIFICADA, el documento con la resolución se le hara llegar por las vias institucionales correspondientes. Gracias por usar nuestros servicios digitales.  Siempre Listos para Servir. Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA.");
+
+                        }
+                    }
+                    Response.Redirect("AdminSolicitudes?Ex=1&status=" + status);
+                }
+            }
+        }
+        var sqlText1 = "select id_TSolicitudTramite from TSolicitudes_Tramite_Leidas where id_TSolicitudTramite=@0 and id_UserProfile=@1";
+        var C1 = Conn.QuerySingle(sqlText1, folioTramite, id_usuario_actual);
+        if (C1 == null)
+        {
+            // el super administrador no puede ingresarse aqui, solo los demas
+            if (id_usuario_actual != 1)
+            { //es roy
+                var insertCommand = "INSERT INTO TSolicitudes_Tramite_Leidas(id_TSolicitudTramite,id_UserProfile,fecha_leido) Values(@0,@1,@2)";
+                Conn.Execute(insertCommand, folioTramite, id_usuario_actual, localDate);
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1> Ver Solicitud <small> Corte Nacional de Honor. </small> </h1>
+        <ol class="breadcrumb">
+
+
+            <li><a href="~/Protected/default" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li><a href="~/Protected/cnh/AdminSolicitudes" title="Administración de solicitudes">Administración solicitudes</a></li>
+            <li class="active">Ver solicitud</li>
+
+        </ol>
+        <ol class="breadcrumb"> <li> </ol>
+    </section>
+
+
+
+
+    <section class="content">
+
+
+
+        @if (MsgErr != "")
+        {
+            <div class="alert alert-warning alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h4><i class="icon fa fa-warning"></i> Alerta!</h4>
+                @MsgErr
+            </div>
+        }
+
+        <form name="form" id="form" method="post" class="form-horizontal">
+            <input type="hidden" name="id" value="@idPersona" />
+            <input type="hidden" name="mandado" value="1" />
+            <input type="hidden" name="status" value="@status" />
+            <input type="hidden" name="NivelM" value="@nivel" />
+            <input type="hidden" name="Id_Provincia" value="@Id_Provincias" />
+
+            <div class="box ">
+                <div class="box-header with-border">
+                    <h3 class="box-title">
+                        Solicitud de revisión ante la CNH a nivel:
+                        <strong>
+
+                            @if (nivel == "1")
+                            {@Html.Raw("GRUPO");
+                        }
+                        else
+                        {
+                            if (nivel == "3")
+                            {@Html.Raw("PROVINCIA");
+                        }
+                        else
+                        {
+                            if (nivel == "4")
+                            {@Html.Raw("NACIONAL");
+                        }
+                        else
+                        {@Html.Raw("NO DEFINIDO");
+                    }
+                }
+            }
+                        </strong>
+                    </h3>
+
+                    <div class="box-tools pull-right">  <button type="button" class="btn btn-box-tool" data-widget="collapse">   <i class="fa fa-minus"></i>  </button>    </div>
+                </div>
+
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                <div class="col-sm-6">
+                                    <label for="inputEmail3" class="col-sm-2 control-label">FOLIO:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="id" value="@idPersona" placeholder="ID" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-2">
+                            <div class="form-group">
+                                <div class="col-sm-4">
+                                    <label for="inputEmail3" class="col-sm-2 control-label">CUM:</label>
+                                </div>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="cum" placeholder="CUM" value="@cum.ToUpper()" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="form-group">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-2 control-label">INTERPONE:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Nombre" value="@nombre.ToUpper()" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (email != null)
+                        {
+                            <div class="col-lg-3">
+                                <div class="form-group">
+                                    <div class="col-sm-3">
+                                        <label for="inputPassword3" class="col-sm-3 control-label align-left">EMAIL:</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <a href="mailto:@email" title="Email" target="_blank">@email </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="col-lg-4">
+                            <div class="form-group">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-4 control-label">ACUERDO:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <a href="~/Protected/AcuerdosArch/@rutaArch" title="Email" target="_blank"> @numacuerdo</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="form-group align-left">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-2 control-label">PROVINCIA:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" id="provincia" name="provincia" readonly placeholder="Provincia" value="@nombreProv">
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="form-group align-left">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-1 control-label">FECHA:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="datetime" class="form-control" id="inputFecha" placeholder="Fecha" value="@Functions.formatofecha(fechaSolicitud)" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="form-group align-left">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-1 control-label">ESTATUS:</label>
+                                </div>
+                                <div class="col-sm-8">
+                                    @{
+                                        //cprimero debe mostrar la opcion resuelto no notificado
+                                        //una vez que este en este estatus solo debe mostrar resuelto notificaco
+
+                                        //el id 3 es resuelto notificado
+
+                                        bool mostrar = false;
+
+                                        if (idEstatusCargado != 7) //el id7 es resuelto no notificado
+                                        { mostrar = false; }
+                                        else
+                                        { mostrar = true; }
+                                    }
+
+
+                                    @if (mostrar == false)
+                                    {
+                                        string selectQueryStringg = "SELECT id,Descrip from CEstatusTramite where id=1 or id=5 or id=6 or id=7";
+                                        <select id="estatus" name="estatus" class="form-control  select" onchange="from(document.form.estatus.value, 'midiv', 'Ajax_estatus_asignar.cshtml')">
+                                            @foreach (var row in Conn.Query(selectQueryStringg))
+                                            {
+                                                <option value="@row.Id" @if (idEstatusCargado == row.Id) { @Html.Raw("selected") ; }>@row.descrip.ToUpper()</option>
+                                            }
+                                        </select>
+                                    }
+                                    else if (mostrar == true)
+                                    {
+                                        string selectQueryStringg = "SELECT id,Descrip from CEstatusTramite where id=3 or id=7";
+                                        <select id="estatus" name="estatus" class="form-control  select" onchange="from(document.form.estatus.value, 'midiv', 'Ajax_estatus_asignar.cshtml')">
+                                            @foreach (var row in Conn.Query(selectQueryStringg))
+                                            {
+                                                <option value="@row.Id" @if (idEstatusCargado == row.Id) { @Html.Raw("selected") ; }>@row.descrip.ToUpper()</option>
+                                            }
+                                        </select>
+
+                                    }
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="form-group align-left">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-1 control-label">ASIGNAR: </label>
+                                </div>
+                                <div class="col-sm-9">
+                                    @{
+                                        if (entre == "1" && status == "6")
+                                        {
+                                            <div id="midiv">
+                                                <select id="consejero" name="consejero" disabled class="form-control  select">
+                                                    <option value="0" selected>ASIGNE ESTATUS EN REVISIÓN</option>
+                                                </select>
+                                            </div>
+
+                                        }
+
+                                        if (entre == "1" && status != "6")
+                                        {
+                                            if (status == "3")
+                                            {//esta resuelto
+                                                int contadorr = 0; string selectQueryStringge = "SELECT id,nombre_Consejero,ver from TConsejeros where ver=1 order by nombre_consejero";
+                                                <select id="consejero" name="consejero" disabled required class="form-control  select">
+                                                    <option value="0">NINGUNO</option>
+                                                    @foreach (var row2 in Conn.Query(selectQueryStringge))
+                                                    {
+                                                        //contador de asignaciones solo cuando esta en revision
+                                                        var sqlText1n = "select count(asignado) as contador from [dbo].[TSolicitudTramite] where estatus=1 and asignado=@0";
+                                                        var C1n = Conn.QuerySingle(sqlText1n, row2.Id);
+                                                        if (C1n != null) { contadorr = C1n.contador; }
+                                                        <option value="@row2.Id" @if (Convert.ToInt32(asignado) == row2.Id) { @Html.Raw("selected") ; }>@row2.nombre_consejero.ToUpper() (@contadorr)</option>
+                                                    }
+                                                </select>
+                                                <input type="hidden" name="consejero" value="@asignado" />
+
+
+                                            }
+                                            else
+                                            { // aun no esta resuelto
+
+                                                int contadorr = 0; string selectQueryStringge = "SELECT id,nombre_Consejero,ver from TConsejeros where ver=1 order by nombre_consejero";
+                                                <select id="consejero" name="consejero" required class="form-control  select">
+                                                    <option value="0">NINGUNO</option>
+                                                    @foreach (var row2 in Conn.Query(selectQueryStringge))
+                                                    {
+                                                        //contador de asignaciones solo cuando esta en revision
+                                                        var sqlText1n = "select count(asignado) as contador from [dbo].[TSolicitudTramite] where estatus=1 and asignado=@0";
+                                                        var C1n = Conn.QuerySingle(sqlText1n, row2.Id);
+                                                        if (C1n != null) { contadorr = C1n.contador; }
+                                                        <option value="@row2.Id" @if (Convert.ToInt32(asignado) == row2.Id) { @Html.Raw("selected") ; }>@row2.nombre_consejero.ToUpper() (@contadorr)</option>
+                                                    }
+                                                </select>
+                                            }
+                                        }
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="form-group align-left">
+                                <div class="col-sm-3">
+                                    <label for="inputPassword3" class="col-sm-1 control-label">TIPO:</label>
+                                </div>
+                                <div class="col-sm-9">
+
+                                    @if (status == "3")
+                                    {//esta resuelto
+
+                                        string selectQueryStringget = "SELECT * from CTipoCaso order by descrip_tipo_caso";
+                                        <select id="tipo" name="tipo" disabled required class="form-control  select">
+                                            @foreach (var row3 in Conn.Query(selectQueryStringget))
+                                            {
+                                                <option value="@row3.Id_TipoCaso" @if (Id_tipoCaso == row3.Id_TipoCaso) { @Html.Raw("selected") ; }>@row3.descrip_tipo_caso.ToUpper()</option>
+                                            }
+                                        </select>
+                                        <input type="hidden" name="tipo" value="@Id_tipoCaso" />
+                                    }
+
+                                    else
+                                    { // no resuelto
+                                        string selectQueryStringget = "SELECT * from CTipoCaso order by descrip_tipo_caso";
+                                        <select id="tipo" name="tipo" required class="form-control  select">
+                                            @foreach (var row3 in Conn.Query(selectQueryStringget))
+                                            {
+                                                <option value="@row3.Id_TipoCaso" @if (Id_tipoCaso == row3.Id_TipoCaso) { @Html.Raw("selected") ; }>@row3.descrip_tipo_caso.ToUpper()</option>
+                                            }
+                                        </select>
+
+                                    }
+                                </div>
+
+
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <label for="inputPassword3" class="col-sm-3 control-label align-left">EMAIL: </label>
+                            <div class="col-sm-8">
+
+                                @if (status != "3")
+                                {
+                                    if (nivel == "1")
+                                    {
+                                        <div class="checkbox">
+                                            <label> <input type="checkbox" name="jsn" disabled> JSN &nbsp;&nbsp;</label>
+                                            <label> <input type="checkbox" name="psn" disabled> PSN </label>
+                                            <small>&nbsp; &nbsp; No aplica a nivel grupo.</small>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="checkbox">
+                                            <label> <input type="checkbox" name="jsn" @if (nivel == "3" || nivel == "4") { @Html.Raw("checked") ; }> JSN  </label>
+                                            <label> <input type="checkbox" name="psn"> PSN  </label>
+                                            <small>&nbsp; &nbsp; Mandado al resolver el caso.</small>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="checkbox">
+                                        <label> <input type="checkbox" name="jsn" disabled> JSN &nbsp;&nbsp;</label>
+                                        <label> <input type="checkbox" name="psn" disabled> PSN </label>
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <hr />
+                    <div class="row">
+                        <div class="col-lg-12 align-left">
+                            <div class="form-group">
+                                <div class="col-sm-1">
+                                    <label for="inputEmail3" class="col-sm-2 control-label">RESUMEN:</label>
+                                </div>
+                                <div class="col-sm-11">
+                                    <input type="text" class="form-control" id="resumen" name="resumen" placeholder="Resumen" value="@resumen.ToUpper()" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12 align-left">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <label>DESCRIPCIÓN DEL CASO:</label>
+                                    <textarea class="form-control" readonly rows="8" placeholder="Descripción del caso">@HttpUtility.HtmlDecode(textoSolicitud).ToUpper()</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12 align-left">
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <label>NOTAS DEL CASO: (Estas notas las ve la persona que interpone el caso)</label>
+
+                                    @if (status == "3")
+                                    {
+                                        <textarea class="form-control" disabled name="notas" maxlength="4000" id="notas" rows="8">@HttpUtility.HtmlDecode(notasCargadas)</textarea>
+                                        <input type="hidden" name="notas" value="@notasCargadas" />
+                                    }
+                                    else
+                                    { <textarea class="form-control" name="notas" maxlength="4000" id="notas" rows="8">@notasCargadas</textarea>}
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        @if (verArch1 == true)
+                        {
+                            if (rutaArchivo1 != "")
+                            {
+                                if (rutaArchivo1 != null)
+                                {
+                                    <div class="col-sm-4">
+                                        <center><strong> <a href="~/WebCNH/Arch_Subidos/@rutaArchivo1" target="_blank" id="arch1n"> DESCARGAR ADJUNTO 1</a> </strong></center>
+                                    </div>
+                                }
+                            }
+                        }
+
+                        @if (verArch2 == true)
+                        {
+                            <div class="col-sm-4">
+                                <center><strong><a href="~/WebCNH/Arch_Subidos/@rutaArchivo2" target="_blank" id="arch2n"> DESCARGAR ADJUNTO 2 </a></strong></center>
+                            </div>
+                        }
+
+                        @if (verArch3 == true)
+                        {
+                            <div class="col-sm-4">
+                                <center><strong><a href="~/WebCNH/Arch_Subidos/@rutaArchivo3" target="_blank" id="arch3n"> DESCARGAR ADJUNTO 3 </a></strong></center>
+                            </div>
+                        }
+                    </div>
+                    <div class="row">
+                        <br /><br />
+                        <div class="col-sm-12">
+                            <strong>ARCHIVOS COMPLEMENTARIOS PARTE DEL EXPEDIENTE: </strong>
+                            <div class="well">
+                                @{
+                                    //@Html.Raw(ruta);// remove this after servermathpath works
+                                    // return;// remove this after servermathpath works
+                                    int contador = 0;
+                                    string ruta = Server.MapPath("/protected/repositorioarchivos/" + idPersona + "/");
+
+                                    if (Directory.Exists(ruta))
+                                    {
+                                        string[] filePaths = Directory.GetFiles(ruta);
+                                        for (int i = 0; i < filePaths.Length; ++i)
+                                        {
+                                            contador = contador + 1;
+                                            string path = filePaths[i];
+                                            @Html.Raw("<small><a href='/protected/repositorioarchivos/" + idPersona + "/" + System.IO.Path.GetFileName(path) + "' target='_blank'>" + System.IO.Path.GetFileName(path.ToUpper()) + "</a></small>");
+                                            @Html.Raw("</BR>");
+                                        }
+                                    }
+                                    else
+                                    {@Html.Raw("No existen archivos complementarios.");
+                                }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer">
+                    <div class="row">
+                        <div class="col-sm-11"><button type="button" class="btn btn-default pull-right" onclick="Cancelar(@status);">CANCELAR</button></div>
+                        <div class="col-sm-0"></div>
+                        <div class="col-sm-1"><button type="button" onclick="Mandarforma();" class="btn btn-default pull-right">ACEPTAR</button></div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </section>
+
+
+
+
+
+
+
+    <section class="content">
+
+        <form method="post" id="formita" name="formita">
+
+            <input type="hidden" name="formita" value="1" />
+            <input type="hidden" name="id" value="@folioTramite" />
+            <input type="hidden" name="status" value="@status" />
+
+            <div class="row">
+                <div class="col-lg-12 align-left">
+                    <div class="form-group">
+                        <div class="col-sm-12">
+
+                            <div class="box direct-chat direct-chat-primary">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Comunicación entre los miembros de la Corte Nacional de Honor</h3>
+                                    <div class="box-tools pull-right">  <button type="button" class="btn btn-box-tool" data-widget="collapse">   <i class="fa fa-minus"></i>  </button>    </div>
+                                </div>
+
+                                <div class="box-body">
+                                    <div class="direct-chat-messages">
+                                        @{
+                                            string selectQueryString = "SELECT * from VComentariosCorte where Id_TSolicitudTramite=@0 order by fecha";
+                                            int contadoru = 1;
+                                            string fotoo = "", IDUserProfile = "";
+                                        }
+
+                                        @foreach (var row in Conn.Query(selectQueryString, idPersona))
+                                        {
+
+                                            // buscar con el id de la persona su cum
+                                            var vx = "select id,cum from TConsejeros where id=@0";
+                                            var con1x = Conn.QuerySingle(vx, row.idTConsejeros);
+                                            if (con1x != null)
+                                            {
+                                                //obtener la foto en la Tabla userprofile
+                                                var ver1x = "select * from VUsuarioDatosRoles where cum='" + con1x.cum + "'";
+                                                var Cum1 = Conn.QuerySingle(ver1x);
+                                                if (Cum1 != null) { fotoo = Cum1.foto; IDUserProfile = Convert.ToString(Cum1.UserId); }
+                                            }
+
+
+
+                                            if (contadoru % 2 != 0)
+                                            {
+                                                <div class="direct-chat-msg">
+                                                    <div class="direct-chat-info clearfix">
+                                                        <span class="direct-chat-name pull-left">@row.nombre_consejero    </span>
+                                                        <span class="direct-chat-timestamp pull-right">@Functions.formatofecha(row.fecha)</span>
+                                                    </div>
+
+                                                    @if (fotoo == null)
+                                                    {<img class="direct-chat-img" src="~/WebCNH/img/flor_lis.png" alt="@row.nombre_consejero"> }
+                                                    else
+                                                    { <img class="direct-chat-img" src="~/WebCNH/img/@fotoo" alt="@row.nombre_consejero">}
+
+                                                    <div class="direct-chat-text"> @row.comentarios             </div>
+                                                    @if (Convert.ToString(WebSecurity.CurrentUserId) == IDUserProfile && idEstatusCargado != 3)
+                                                    { //solo lo borra quien lo puso
+                                                        <div class="pull-right"><small> <a href="#" onclick="BorrarComentario('@row.id','@folioTramite','@status')" alt="Borrar comentario">Borrar </a> </small></div>
+                                                    }
+
+                                                </div>
+                                                contadoru++;
+                                            }
+                                            else
+                                            { <!--par derecho -->
+                                                <div class="direct-chat-msg right">
+                                                    <div class="direct-chat-info clearfix">
+                                                        <span class="direct-chat-name pull-right">@row.nombre_consejero</span>
+                                                        <span class="direct-chat-timestamp pull-left">@Functions.formatofecha(row.fecha)</span>
+                                                    </div>
+                                                    @if (fotoo == null)
+                                                    {<img class="direct-chat-img" src="~/WebCNH/img/flor_lis.png" alt="@row.nombre_consejero"> }
+                                                    else
+                                                    { <img class="direct-chat-img" src="~/WebCNH/img/@fotoo" alt="@row.nombre_consejero">}
+
+                                                    <div class="direct-chat-text"> @row.comentarios  </div>
+                                                    @if (Convert.ToString(WebSecurity.CurrentUserId) == IDUserProfile && idEstatusCargado != 3)
+                                                    { //solo lo borra quien lo puso
+                                                        <div class="align-left"><small> <a href="#" onclick="BorrarComentario('@row.id','@folioTramite','@status')" alt="Borrar comentario">Borrar </a></small></div>
+                                                    }
+                                                </div>
+                                                contadoru++;
+                                            }
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="box-footer">
+
+                                    @if (idEstatusCargado == 1 && (asignado != null))
+                                    {
+                                        // los comentarios solo se pueden poner cuando este en revision el caso =1 y asignado a un miembro de la corte
+                                        <div class="input-group">
+                                            <input type="text" name="mensaje" placeholder="Escriba su mensaje ..." maxlength="300" value="" class="form-control">
+                                            <span class="input-group-btn">    <button type="button" onclick="javascript:enviarComentarios();" class="btn btn-primary btn-flat">Enviar </button>       </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="input-group">Solo podrá escribir comentarios cuando el caso este con estatus EN REVISIÓN y se encuentre asignado a un miembro de la corte.</div>
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </form>
+
+    </section>
+
+</div>
+
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}
+
+
+<script type="text/javascript">
+    function enviarComentarios() {
+        document.formita.submit();
+    }
+</script>
+
+<script type="text/javascript">
+    function Mandarforma() {
+        document.form.submit();
+    }
+
+
+</script>
+
+<script type="text/javascript">
+    function BorrarComentario(id, folioTramite, status) {
+        //    if (!confirm('¿Desea eliminar de manera permanente el comentario?')) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'VerSolicitud');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'IdABorrar');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        myvar1 = document.createElement('input');
+        myvar1.setAttribute('name', 'BorrarComentario');
+        myvar1.setAttribute('type', 'hidden');
+        myvar1.setAttribute('value', 1);
+        myvar2 = document.createElement('input');
+        myvar2.setAttribute('name', 'id');
+        myvar2.setAttribute('type', 'hidden');
+        myvar2.setAttribute('value', folioTramite);
+        myvar3 = document.createElement('input');
+        myvar3.setAttribute('name', 'status');
+        myvar3.setAttribute('type', 'hidden');
+        myvar3.setAttribute('value', status);
+        form.appendChild(myvar);
+        form.appendChild(myvar1);
+        form.appendChild(myvar2);
+        form.appendChild(myvar3);
+        document.body.appendChild(form);
+        form.submit();
+    }
+    // }
+</script>
+
+<script type="text/javascript" language="javascript">
+    // ajax que actualiza el estado del menu
+    $('#arch1n').click(function (event) {
+        //alert("entre");
+    event.preventDefault();
+        $.ajax({
+                    type: 'POST',
+                    url: 'arch1.cshtml',
+                     // Envio datos al ajax
+                    data: {id_usuario:'@idPersona'},
+                   // dataType: 'json',
+                    cache: false,
+                    success: function(result) {
+                        //regreso de datos de ajax
+                        if (result) {
+
+                           // window.location = "../../WebCNH/Arch_Subidos/@rutaArchivo1"
+                            window.open('../../WebCNH/Arch_Subidos/@rutaArchivo1', '_blank');
+                           //  alert("guardado");
+                        }else{
+                           // alert("error");
+                        }
+                    }
+             });
+    });
+</script>
+
+<script type="text/javascript" language="javascript">
+    // ajax que actualiza el estado del menu
+    $('#arch2n').click(function (event) {
+        //alert("entre");
+    event.preventDefault();
+        $.ajax({
+                    type: 'POST',
+                    url: 'arch2.cshtml',
+                     // Envio datos al ajax
+                    data: {id_usuario:'@idPersona'},
+                   // dataType: 'json',
+                    cache: false,
+                    success: function(result) {
+                        //regreso de datos de ajax
+                        if (result) {
+
+                            //window.location = "../../WebCNH/Arch_Subidos/@rutaArchivo2"
+                            window.open('../../WebCNH/Arch_Subidos/@rutaArchivo2', '_blank');
+                             //alert("guardado");
+                        }else{
+                            //alert("error");
+                        }
+                    }
+             });
+    });
+</script>
+
+<script type="text/javascript" language="javascript">
+    // ajax que actualiza el estado del menu
+    $('#arch3n').click(function (event) {
+        //alert("entre");
+    event.preventDefault();
+        $.ajax({
+                    type: 'POST',
+                    url: 'arch3.cshtml',
+                     // Envio datos al ajax
+                    data: {id_usuario:'@idPersona'},
+                   // dataType: 'json',
+                    cache: false,
+                    success: function(result) {
+                        //regreso de datos de ajax
+                        if (result) {
+
+                           // window.location = "../../WebCNH/Arch_Subidos/@rutaArchivo3"
+                            window.open('../../WebCNH/Arch_Subidos/@rutaArchivo3', '_blank');
+
+                           //  alert("guardado");
+                        }else{
+                           // alert("error");
+                        }
+                    }
+             });
+    });
+</script>
+
+<script>
+
+    function Cancelar(a) {
+        location.replace("AdminSolicitudes?status=" + a);
+    }
+</script>

@@ -1,0 +1,109 @@
+﻿@{
+
+    var Conn = Database.Open("Dashboard");
+    string id = Request["id"];
+
+    string TextoAcuerdo = "", NumAcuerdo = "", TituloAcuerdo = "", secretario="", DIRIGIDOA="", concopiapara="";
+    DateTime Fecha = new DateTime();
+
+
+    var sqlText01en = "SELECT * FROM  TAcuerdosCNH WHERE Id_Acuerdo=@0 ";
+    var C0En = Conn.QuerySingle(sqlText01en, id);
+    if (C0En != null) {
+        Fecha=C0En.Fecha;
+        TituloAcuerdo= C0En.TituloAcuerdo.ToUpper();
+        NumAcuerdo=C0En.NumAcuerdo.ToUpper();
+        TextoAcuerdo= C0En.TextoAcuerdo.ToUpper();
+        DIRIGIDOA = C0En.DirigidoA;
+        concopiapara = C0En.ConCopiaPara;
+    }
+
+    //nombre del secretario
+    var sqlText = "SELECT * FROM  TConsejeros WHERE secretario=1 ";
+    var C0 = Conn.QuerySingle(sqlText, id);
+    if (C0 != null)
+    {
+        secretario = C0.nombre_Consejero.ToUpper();
+    }
+
+
+
+}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Imprimir Acuerdo en PDF</title>
+</head>
+
+<body>
+    <center>
+    <table width="100%"  border="0" background="~/images/fondo_oficio.fw.png">
+        <tr>
+            <td valign="top">
+                <p>&nbsp;</p>
+                <p>&nbsp;</p>
+                <p>&nbsp;</p>
+                <table width="100%" border="1" cellspacing="0" cellpadding="0" >
+                    <tr >
+                        <td valign="top" height="20">
+                            <table width="100%" border="0">
+                                @if (DIRIGIDOA != "")
+                                {
+                                    <tr>
+                                        <td align="left" valign="TOP">ESTIMADO(A): <br /><strong>@DIRIGIDOA</strong><br /> P R E S E N T E</td>
+                                        <td align="right" valign="TOP">
+                                            CD. DE MÉXICO A @Functions.formatofechaSinHora(Fecha).ToUpper()<br /> NO. OFICIO: @NumAcuerdo<br />   @TituloAcuerdo.ToUpper()
+                                        </td>
+                                    </tr>
+
+                                }
+                                else {
+                                    <tr>
+                                        <td align="left" valign="TOP">&nbsp;</td>
+                                        <td align="right" valign="TOP">
+                                            CD. DE MÉXICO A @Functions.formatofechaSinHora(Fecha).ToUpper()<br /> NO. OFICIO: @NumAcuerdo<br />   @TituloAcuerdo.ToUpper()
+                                        </td>
+                                    </tr>
+                                }
+
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign="TOP" height="550">@TextoAcuerdo</td>
+                </tr>
+                <tr>
+                    <td align="center" valign="TOP" height="30">
+                        ATENTAMENTE:<br /><br /><br /><br />
+                        <strong> @secretario</strong><br />
+                        SECRETARIO DE LA CORTE
+                    </td>
+                </tr>
+
+                    @if (concopiapara != "")                    {
+                        if (concopiapara != null)                        {
+                            <tr>
+                                <td align="left" valign="TOP">
+                                    <br />
+                                    CCp.- @concopiapara
+                                </td>
+                            </tr>
+                        }
+                    }
+       
+            </table>
+
+        </td>
+    </tr>
+</table>
+</center>
+    </body>
+</html>
+
+
+@{
+    Conn.Close();
+    Conn.Dispose();
+}

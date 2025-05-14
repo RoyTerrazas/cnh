@@ -1,0 +1,145 @@
+﻿@{
+    Layout = "_Site_Layout.cshtml";
+    PageData["Title"] = "Permisos a usuarios";
+    var Conn = Database.Open("Dashboard");
+    string errorMessage = "";
+    string exitoMessage = "";
+
+    var RoleId = Request.QueryString["Ud"];
+    var NombreGrupo = "";
+
+
+
+    if (Request.QueryString["Ud"] != "" || !Request.QueryString["Ud"].IsEmpty())    {
+            var sqlText = "SELECT * from UserProfile WHERE UserId=@0";
+            var C0 = Conn.QuerySingle(sqlText, RoleId);
+            if (C0 != null)            {
+                NombreGrupo = C0.Nombre + " " + C0.Paterno + " " + C0.Materno;
+            }
+    }
+    else { errorMessage = "Se requiere de un Id para continuar"; }
+
+    // script de seguridad
+    string Nombre_pagina = Convert.ToString(Path.GetFileNameWithoutExtension(Request.Path));
+    if (@Functions.SeguridadAccesoRecursos(Nombre_pagina) == false)    { Response.Redirect("SinPermiso"); }
+
+    if (IsPost)    {
+        var concatenar = "";
+        var opcion = "";
+        var identGrupoActual = 0;
+
+        var selectQueryString3 = "SELECT * FROM webpages_Recursos ORDER BY Descripcion";
+        foreach (var row2 in Conn.Query(selectQueryString3))        {
+            concatenar = Convert.ToString("Opcion_" + row2.Id_Recursos);
+            opcion = Convert.ToString(Request.Form[concatenar]);
+            identGrupoActual = row2.Id_Recursos;
+
+            if (opcion == "S")
+            {
+                // checar si ya se inserto el mismo dato, no insertarlo de nuevo, si no si
+                var sqlTexto = "SELECT * FROM webpages_Acceso_RecursosPorPersona WHERE Id_webpages_Recursos=@0 and Id_UserProfile=@1";
+                var C1 = Conn.QuerySingle(sqlTexto, identGrupoActual, RoleId);
+                if (C1 == null)
+                {
+                    var insertCommand = "INSERT INTO webpages_Acceso_RecursosPorPersona (Id_webpages_Recursos, Id_UserProfile) Values(@0, @1)";
+                    Conn.Execute(insertCommand, identGrupoActual, RoleId);
+                }
+            }
+            else
+            { // aqui entra cuando no esta checado por lo que lo borra
+                var deleteCommand2 = "DELETE FROM webpages_Acceso_RecursosPorPersona WHERE Id_UserProfile=" + RoleId + " and Id_webpages_Recursos=" + identGrupoActual;
+                // @Html.Raw(deleteCommand2);
+                Conn.Execute(deleteCommand2);
+                exitoMessage = "Se han actualizado sus datos";
+            }
+        }// del for
+    }// is post
+}
+
+
+
+
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            Permisos a usuarios
+            <small>Asignación de permisos a usuarios particulares</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="Inicio" title="Inicio"><i class="fa fa-dashboard"></i>Inicio</a></li>
+            <li class="active"><a href="#" title="Asignación de permisos a usuarios"><i class="fa fa-lock"></i>Asignación de permisos a usuarios </a></li>
+        </ol>
+    </section>
+    <!-- Main content -->
+    <section class="content">
+
+
+        @if (errorMessage != "")
+        {
+            <div class="alert alert-error">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>ERROR.</h4>
+                @Html.Raw(errorMessage)
+            </div>
+        }
+
+        @if (exitoMessage != "")
+        {
+            <div class="alert alert-success">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4>Éxito.</h4>
+                @Html.Raw(exitoMessage)
+            </div>
+        }
+
+ 
+            <!-- COLOR PALETTE -->
+            <div class="box box-default color-palette-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-lock"></i> Permisos a usuarios</h3>
+                </div>
+                <div class="box-body">
+                    
+                        <form class="form-horizontal" method="post">
+                            <input type="hidden" value="@RoleId" name="RoleId">
+                   
+                            <fieldset>
+                                <legend>Nombre:  <strong>@NombreGrupo</strong></legend>
+                                <div class="control-group">
+                                    @{
+                                      var selectQueryString = "";
+                                      selectQueryString = "SELECT * FROM webpages_Recursos ORDER BY Descripcion";
+                                     }
+                                    @foreach (var row in Conn.Query(selectQueryString))
+                                    {
+                                        var opcionn = "Opcion_" + row.Id_Recursos;
+                                        //   var opcionn=row.Id_Recursos;
+                                        <div class="controls">
+                                           <input type="checkbox" name="@opcionn" id="@opcionn" value="S"
+                                            @{ var sqlText33 = "SELECT * FROM webpages_Acceso_RecursosPorPersona WHERE Id_UserProfile=@0 and Id_webpages_Recursos=@1"; var C1 = Conn.QuerySingle(sqlText33, RoleId, row.Id_Recursos); if (C1 != null) { @Html.Raw("checked") }    }> @row.Descripcion
+                                        </div>
+    }
+                                </div>
+
+                                <div class="text-right">
+                                    <input type="button" id="Cancelar" class="btn" value="Cancelar" title="Cancelar" onClick="location.href = 'PermisosUsuarios' ">
+                                    <button type="submit" class="btn btn-primary" title="Aceptar">Aceptar</button>
+                                </div>
+                            </fieldset>
+                        </form>
+
+                  
+                </div>
+                <div class="box-footer">
+                </div>
+            </div>
+        </section>
+</div>
+
+
+@{ Conn.Close();
+    Conn.Dispose();
+}
+
+

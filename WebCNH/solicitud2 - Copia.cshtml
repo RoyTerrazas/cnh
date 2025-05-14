@@ -1,0 +1,967 @@
+﻿@using Microsoft.Web.Helpers;
+@using System.Configuration;
+@using System.Text.RegularExpressions;
+
+@{
+    string mandado = "", cum = "", FormaMandada = "", NIVEL = "";
+    mandado = Request.QueryString["m"];
+    var Conn = Database.Open("Dashboard");
+
+    var ConnSisas = Database.Open("Sisas");
+    DateTime Hoy = DateTime.Now;
+
+    cum = Request.QueryString["cum"];
+    FormaMandada = Request.Form["FormaMandada"]; // cuando se mando la forma 2
+
+    //variable global para saber si es localhost y evitar errores de mandado de emails
+    // se debe incluir la libreria System.Configuration
+    string EsLocalHost = ConfigurationManager.AppSettings["PlataformaLocal"];
+    //-------------------------------------------
+
+
+
+    //Conectar al Regnal
+    string nombre = "", paterno = "", materno = "", provincia = "", resumen = "", fotofilename = "", NotasCaso = "", TextoSolicitud = "", GrupoCargado = "", nombre_provincia = "", MsgError = "", Mensaje = "";
+    int iddatos_personales = 0, grupo_num = 0, provincia_grupo = 0;
+    bool baja = false, estatus = false, exito = false;
+    bool Ver = true, emailMandado = false;
+    string tipo_tramite = "";
+    string email = "", resumenn = "", texto = "", provinciaid = "", folio = "";
+    string ProvCargado = "", NombreCargado = "", PaternoCargado = "", MaternoCargado = "", CUMCargado = "", NombreCompleto = "";
+
+    //cuando se manda la 2da forma par aingresar a la bd
+
+
+    //obtener el email del presidente y del secretario para mandarles correo cuando se ingrese una solicitud
+    string emailPC = "", emailSC = "";
+    var sq1 = "select * from VUserProfileYTConsejeros where  presidente=1 and ver=1";
+    var Csq1 = Conn.QuerySingle(sq1);
+    if (Csq1 != null) { emailPC = Csq1.email.Trim(); }
+
+    var sq2 = "select * from VUserProfileYTConsejeros where  secretario=1 and ver=1";
+    var Csq2 = Conn.QuerySingle(sq2);
+    if (Csq2 != null) { emailSC = Csq2.email.Trim(); }
+
+
+
+
+    if (FormaMandada == "1" && IsPost)
+    {
+
+
+        //Validate Google recaptcha here
+        var response = Request["g-recaptcha-response"];
+        string secretKey = "6Lf39PYUAAAAAAGgaT8rW84MVz6qEdgTWTlLrKAA";
+        var client = new WebClient();
+        var result = client.DownloadString(string.Format("https://www.google.com/recaptcha/api/siteverify?secret={0}&response={1}", secretKey, response));
+        string substring = result.Substring(14, 5);
+
+        if (substring.Trim() == "fals")
+        {
+            Mensaje = "Se requiere que verifique la casilla para continuar";
+        }
+
+        else
+        {
+
+            //revisar que el email sea correcto:
+            string reg_pattern = @"^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$";
+            Regex regex = new Regex(reg_pattern);
+            if (regex.IsMatch(Request.Form["email"]) == true) { email = Request.Form["email"]; }
+
+
+
+            resumenn = HttpUtility.HtmlEncode(Request.Form["resumen"]);
+            texto = HttpUtility.HtmlEncode(Request.Form["texto"]);
+            ProvCargado = Request.Form["provincia"];
+            provinciaid = Request.Form["provinciaid"];
+            NombreCargado = Request.Form["nombre"];
+            PaternoCargado = Request.Form["paterno"];
+            MaternoCargado = Request.Form["materno"];
+            CUMCargado = Request.Form["cum"];
+            NIVEL = Request.Form["nivel"];
+            var NivelFuncional = Request.Form["NivelFuncional"];
+
+            // if (NIVEL == "") { NIVEL = "1"; }
+            //if (NIVEL == null) { NIVEL = "1"; }
+
+            if (Request.Form["tipo_tramite"] == "") { tipo_tramite = "1"; }
+            else
+            {
+                if (Request.Form["tipo_tramite"] == null) { tipo_tramite = "1"; }
+                else { tipo_tramite = Request.Form["tipo_tramite"]; }
+            }
+
+            NombreCompleto = NombreCargado.ToUpper() + " " + PaternoCargado.ToUpper() + " " + MaternoCargado.ToUpper();
+
+            //hacer los inserts correspondeientes
+            if (email != "" && resumenn != "" && texto != "")
+            {
+                //subir archivos
+                string fileSavePath1 = "", fileSavePath2 = "", fileSavePath3 = "";
+                string newFileName2 = "", newFileName3 = "", newFileName = ""; ;
+
+                var uploadedFile = Request.Files["archivo1"];
+                var uploadedFile2 = Request.Files["archivo2"];
+                var uploadedFile3 = Request.Files["archivo3"];
+
+                var sqlText01 = "SELECT * FROM  TSolicitudTramite WHERE CUM=@0 and resumen=@1 and TextoSolicitud=@2 and email=@3";
+                var C01 = Conn.QuerySingle(sqlText01, CUMCargado, resumenn, texto, email);
+                if (C01 == null)
+                {
+                    if (Path.GetFileName(uploadedFile.FileName) != "")
+                    {//1
+                        newFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(uploadedFile.FileName);
+                        // fileSavePath1 = Server.MapPath("~/WebCNH/Arch_Subidos/" + newFileName);
+                        fileSavePath1 = Path.Combine(Server.MapPath("~/WebCNH/Arch_Subidos/"), newFileName);
+
+
+
+
+                        uploadedFile.SaveAs(fileSavePath1);
+                    }
+                    else { newFileName = null; }
+
+                    if (Path.GetFileName(uploadedFile2.FileName) != "")
+                    {//2
+                        newFileName2 = Guid.NewGuid().ToString() + "_" + Path.GetFileName(uploadedFile2.FileName);
+                        // fileSavePath2 = Server.MapPath("~/WebCNH/Arch_Subidos/" + newFileName2);
+                        fileSavePath2 = Path.Combine(Server.MapPath("~/WebCNH/Arch_Subidos/"), newFileName2);
+                        uploadedFile2.SaveAs(fileSavePath2);
+                    }
+                    else { newFileName2 = null; }
+
+                    if (Path.GetFileName(uploadedFile3.FileName) != "")
+                    {//3
+                        newFileName3 = Guid.NewGuid().ToString() + "_" + Path.GetFileName(uploadedFile3.FileName);
+                        // fileSavePath3 = Server.MapPath("~/WebCNH/Arch_Subidos/" + newFileName3);
+                        fileSavePath3 = Path.Combine(Server.MapPath("~/WebCNH/Arch_Subidos/"), newFileName3);
+                        uploadedFile3.SaveAs(fileSavePath3);
+                    }
+                    else { newFileName3 = null; }
+
+
+                    var insertCommand = "INSERT INTO TSolicitudTramite(provincia, estatus,Nombre,CUM,fecha,RutaArchivo1,RutaArchivo2,RutaArchivo3,resumen,email,TextoSolicitud,Asignado,id_CtipoCaso,nivel) Values(@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13)";
+                    Conn.Execute(insertCommand, provinciaid, 6, NombreCompleto, CUMCargado, Hoy, newFileName, newFileName2, newFileName3, resumenn, email, texto, 0, tipo_tramite, NIVEL);
+
+
+
+                    //------EXITO--------------------------------------------------------
+                    exito = true;// para saber que ya se hizo y se muestre el anuncio
+
+
+                }// de la verificacion del recaptcha
+
+
+            }//forma mandada
+
+
+
+            //obtener el numero de folio---------------------------------------------------------------------------------------------------------
+            if (exito == true)
+            {
+
+
+
+
+                var sqlText00 = "SELECT top 1 id as folio FROM  TSolicitudTramite order by id desc";
+                var C00 = Conn.QuerySingle(sqlText00);
+                if (C00 != null) { folio = Convert.ToString(C00.folio); }
+
+                //mandar email aqui---------------------------------------------
+                // Initialize WebMail helper
+                //Send email
+
+
+
+
+
+                //revisar a quien se le va a mandar el email
+
+                //email nivel grupo
+
+                //email nivel provincia
+
+                // email nivel nacional
+
+                //buscar email del pp
+                string emailpp = "";
+                var sqlTextProv = "SELECT correo  FROM TEmail where Id_CProvincias=@0";
+                var CProv = Conn.QuerySingle(sqlTextProv, provinciaid);
+                if (CProv != null) { emailpp = CProv.correo; }
+                string emailRoy = "roy.terrazas@scouts.org.mx";
+
+                // @Html.Raw("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" + emailpp+" "+NivelFuncional + " " + email + " " + emailPC + " " + emailSC);
+
+                //grupo
+                if (NivelFuncional == "1")
+                {
+                    //buscar email del pp
+                    //  string emailpp = "";
+                    //  var sqlTextProv = "SELECT correo  FROM TEmail where Id_CProvincias=@0";
+                    //  var CProv = Conn.QuerySingle(sqlTextProv, provinciaid);
+                    //  if (CProv != null) { emailpp = CProv.correo; }
+
+                    if (EsLocalHost != "1")
+                    {
+                        //pp
+                        WebMail.Send(to: emailpp, subject: "SOLICITUD INTERPUESTA ANTE LA CNH (NIVEL GRUPO) ", body: "Estimado(da) PP, por medio de la presente le comunicamos que la CNH ha recibido un caso dentro del territorio de su provincia, este caso es a nivel grupo con el número único de folio: " + folio + ", y ha sido interpuesto con el siguiente CUM: " + cum + " Esta informacion se le proporciona para que este enterado de los casos activos dentro de su provincia, si requiere mas información le solicitamos se ponga en contacto con el Presidente de la CNH. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes.        Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //PERSONA AFECTADA
+                        WebMail.Send(to: email, subject: "RECIBIMOS SU SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO) ", body: "Su solicitud de trámite ante la CNH ha sido recibida con el número único de folio: " + folio + ", con este folio y el siguiente CUM: " + cum + " usted puede dar seguimiento en tiempo real a su solicitud. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes. Para dar segumiento a su solicitud favor de acceder a: http://www.cnhscouts.org.mx/WebCNH/seguimiento           Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //correo al presidente de la corte
+                        WebMail.Send(to: emailPC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO)", body: "Estimado Presidente de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        // correo al secretario de la corte
+                        WebMail.Send(to: emailSC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO)", body: "Estimado Secretario de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+
+                        // correo al admin
+                        WebMail.Send(to: emailRoy, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO)", body: "Estimado Superadministrador de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+
+
+                        emailMandado = true;
+
+                    }
+                }
+
+                //provincia
+                if (NivelFuncional == "3")
+                {
+                    //buscar email del pp
+                    //  string emailpp = "";
+                    //   var sqlTextProv = "SELECT correo  FROM TEmail where Id_CProvincias=@0";
+                    //  var CProv = Conn.QuerySingle(sqlTextProv, provinciaid);
+                    //   if (CProv != null) { emailpp = CProv.correo; }
+
+                    if (EsLocalHost != "1")
+                    {
+                        //pp
+                        WebMail.Send(to: emailpp, subject: "SOLICITUD INTERPUESTA ANTE LA CNH (NIVEL PROVINCIA) ", body: "Estimado(da) PP, por medio de la presente le comunicamos que la CNH ha recibido un caso dentro del territorio de su provincia, este caso es a nivel provincia con el número único de folio: " + folio + ", y ha sido interpuesto con el siguiente CUM: " + cum + " Esta informacion se le proporciona para que este enterado de los casos activos dentro de su provincia, si requiere mas información le solicitamos se ponga en contacto con el Presidente de la CNH. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes.        Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //PERSONA AFECTADA
+                        WebMail.Send(to: email, subject: "RECIBIMOS SU SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL PROVINCIA)", body: "Su solicitud de trámite ante la CNH ha sido recibida con el número único de folio: " + folio + ", con este folio y el siguiente CUM: " + cum + " usted puede dar seguimiento en tiempo real a su solicitud. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes. Para dar segumiento a su solicitud favor de acceder a: http://www.cnhscouts.org.mx/WebCNH/seguimiento           Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //correo al presidente de la corte
+                        WebMail.Send(to: emailPC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL PROVINCIA)", body: "Estimado Presidente de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        // correo al secretario de la corte
+                        WebMail.Send(to: emailSC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL PROVINCIA)", body: "Estimado Secretario de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+                        // correo al admin
+                        WebMail.Send(to: emailRoy, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO)", body: "Estimado Superadministrador de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+
+                        emailMandado = true;
+
+                    }
+                }
+
+                //nacional
+                if (NivelFuncional == "4")
+                {
+
+                    if (EsLocalHost != "1")
+                    { //al jefe scout nacional
+                      //JSN
+                        string jsn = "jefatura.nacional@scouts.org.mx";
+                        WebMail.Send(to: jsn, subject: "CASO A NIVEL NACIONAL INGRESADO ANTE LA CNH ", body: "Estimado JSN, le comunicamos que una solicitud de trámite a nivel nacional ante la CNH ha sido recibida con el número único de folio: " + folio + ", y el siguiente CUM: " + cum + " este correo le llega para que este enterado de que existen casos que la CNH lleva de personas registradas en nacional. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes. Si requiere más información al respecto, favor de comunicarse con el presidente de la CNH. Gracias.     Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //LA PERSONA QUE INTERPUSO
+                        WebMail.Send(to: email, subject: "RECIBIMOS SU SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL NACIONAL)", body: "Su solicitud de trámite ante la CNH ha sido recibida con el número único de folio: " + folio + ", con este folio y el siguiente CUM: " + cum + " usted puede dar seguimiento en tiempo real a su solicitud. Le recordamos que las resoluciones de la CNH serán notificadas unicamente por las vias institucionales pertinentes. Para dar segumiento a su solicitud favor de acceder a: http://www.cnhscouts.org.mx/WebCNH/seguimiento           Siempre Listos para Servir.       Corte Nacional de Honor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        //correo al presidente de la corte
+                        WebMail.Send(to: emailPC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL NACIONAL)", body: "Estimado Presidente de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+                        // correo al secretario de la corte
+                        WebMail.Send(to: emailSC, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL NACIONAL)", body: "Estimado Secretario de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+                        // correo al admin
+                        WebMail.Send(to: emailRoy, subject: "INGRESO UNA SOLICITUD DE REVISIÓN ANTE LA CNH (NIVEL GRUPO)", body: "Estimado Superadministrador de la Corte Nacional de Honor le informamos que acaba de ingresar una nueva solicitud de revisión de caso con folio: " + folio + ", le solicitamos revise el sistema de la CNH por favor. NO OMITO MENCIONARLE QUE EN ESTE CORREO SE MANEJAN DATOS PERSONALES LOS CUALES SE ENCUENTRAN PROTEGIDOS POR LA LEY FEDERAL DE DATOS PERSONALES EN POSESIÓN DE LOS PARTICULARES, Y LA SANCIÓN AL QUE VIOLA LA MISMA PUEDEN SER DESDE MULTAS A PRISIÓN, Y QUE LA INFORMACIÓN AQUÍ CONTENIDA ES CONSIDERADA COMO CONFIDENCIAL, POR LO QUE ESTE CORREO ASÍ COMO LO AQUÍ TRATADO NO DEBERÁ DE COMPARTIRSE O REPRODUCIRSE, PUES SOLO ES PARA SU LECTURA");
+
+
+                        emailMandado = true;
+                    }
+                }
+
+
+
+
+                //  @Html.Raw(emailMandado);
+
+                //  return;
+
+
+
+
+            }
+        }
+    }
+
+    string idcargo = "", idmiembro = "", nivel = "", idgrupo = "", ErrorRegnal = "";
+
+
+    string cargo0 = "", cargo1 = "", cargo2 = "";
+
+    try
+    {
+
+
+
+
+        var sqlText0 = "select * from VistaReporteador where cum =@0 and Vigente='SI'";
+        var C0 = ConnSisas.QuerySingle(sqlText0, cum.Trim()); // ojo para que sea solo uno es query single
+
+
+        if (C0 != null)
+        {
+
+            //estatus = C0.activo;
+            if (C0.Vigente != "SI") { MsgError = "SU REGISTRO A LA ASOCIACIÓN NO ESTA ACTIVO POR LO QUE NO PODRA INTERPONER UNA REVISIÓN DE SU CASO."; }
+            else
+            {
+                nombre = C0.nombre;
+                idgrupo = Convert.ToString(C0.idgrupo);
+                idmiembro = Convert.ToString(C0.idmiembro);
+                provincia_grupo = C0.idprovincia;
+                nombre_provincia = C0.provincia;
+            }
+
+            //revisar los cargos de cada usuario
+            //hacer una matriz para guardar los cargos, como pueden ser varios
+            //bajamos la matriz de cargos a una variable
+            string CadenaCargos = Convert.ToString(C0.idcargos);
+            string c0 = "", c1 = "";
+
+            if (CadenaCargos == null)
+            {
+               // MsgError = "NO SE ENCUENTRA NINGÚN CARGO ASIGNADO PARA ESTE CUM EN EL SISAS, PARA PROSEGUIR DEBERÁ TENER UN CARGO.";
+                nivel = "1";
+            }
+            else
+            {
+                if (CadenaCargos == "")
+                {
+                    // MsgError = "NO SE ENCUENTRA NINGÚN CARGO ASIGNADO PARA ESTE CUM EN EL SISAS, PARA PROSEGUIR DEBERÁ TENER UN CARGO.";
+                    nivel = "1";
+                }
+                else
+                {
+
+                    //cortamos la cadena de cargos
+                    string[] Cargos = CadenaCargos.Split(',');
+                    //asignamos el cargo a una variable, donde lo guarda con catacteres especiales
+                    cargo0 = Cargos[0];
+                    cargo1 = Cargos[1];
+                    // cargo2 = Cargos[2];
+
+                    //le quitamos el caracter especial |
+                    string cargo0Modificado = (cargo0.Replace("|", "")).Trim();
+                    string cargo1Modificado = (cargo1.Replace("|", "")).Trim();
+                    // string cargo2Modificado = (cargo2.Replace("|", "")).Trim();
+
+                    // @Html.Raw("Cargos 0 " + cargo0Modificado);
+                    //  @Html.Raw("Cargos 1 " + cargo1Modificado);
+
+                    //revisar en la tabla de cargos para con el id del cargo obtener el nivel
+
+
+
+                    var sqlTextCargo0 = "select nombre,IdCargo,nivel from Cargo where activo=1 and IdCargo=@0";
+                    var CCargo0 = ConnSisas.QuerySingle(sqlTextCargo0, cargo0Modificado);
+                    if (CCargo0 != null) { c0 = CCargo0.nivel; }
+
+                    var sqlTextCargo1 = "select nombre,IdCargo,nivel from Cargo where activo=1 and IdCargo=@0";
+                    var CCargo1 = ConnSisas.QuerySingle(sqlTextCargo1, cargo1Modificado);
+                    if (CCargo1 != null) { c1 = CCargo1.nivel; }
+
+                    //  var sqlTextCargo2 = "select nombre,IdCargo,nivel from Cargo where activo=1 and IdCargo=@0";
+                    //   var CCargo2 = ConnSisas.QuerySingle(sqlTextCargo2, cargo2Modificado);
+                    //  if (CCargo2 != null)         { c2 = CCargo2.nivel; }
+
+                    if (c0 == "NACIONAL" || c1 == "NACIONAL") { nivel = "4"; }
+                    else
+                    {
+                        if (c0 == "PROVINCIA" || c1 == "PROVINCIA") { nivel = "3"; }
+                        else
+                        {
+                            // if (c1 == "GRUPO" || c1 == "SECCIÓN") { nivel = "1"; }
+                            nivel = "1";
+                        }
+
+                    }
+
+
+
+                }
+
+            }
+
+
+
+
+
+        }
+        else { MsgError = "SU REGISTRO A LA ASOCIACIÓN NO ESTA ACTIVO POR LO QUE NO PODRA INTERPONER UNA REVISIÓN DE SU CASO."; }
+
+
+
+    }
+    catch (Exception e)
+    {
+        ErrorRegnal = "EL SISAS SE ENCUENTRA CAIDO EN ESTOS MOMENTOS POR LO QUE SE SOLICITUD NO PUEDE PROCEDER, LE SUPLICAMOS REGRESE CUANDO SE RESTABLEZCA EL SERVICIO.";
+        // @Html.Raw(e);
+    }
+    finally
+    {
+        ConnSisas.Close();
+        ConnSisas.Dispose();
+    }
+
+
+
+
+
+
+
+}
+
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Nuevo recurso de revisión ante la CNH</title>
+    <!-- Font Awesome Icons -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather+Sans:400,700" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
+    <!-- Plugin CSS -->
+    <link href="vendor/magnific-popup/magnific-popup.css" rel="stylesheet">
+    <!-- Theme CSS - Includes Bootstrap -->
+    <link href="css/creative.min.css" rel="stylesheet">
+
+
+    <!-- input redondeado de los texts-->
+    <link href="css/rounded.css" rel="stylesheet">
+    <link href="css/botones.css" rel="stylesheet">
+    <!--<link href="css/typefile.css" rel="stylesheet">-->
+
+
+    <script src='https://www.google.com/recaptcha/api.js' type="text/javascript"></script>
+    <link rel="shortcut icon" href="http://www.scout.org/sites/default/files/favicon.ico" type="image/vnd.microsoft.icon" />
+
+    <style>
+        .btn1 {
+            position: absolute;
+            border-radius: 8px;
+            top: 48px;
+            left: 45px;
+            padding: 6px 37px;
+            font-size: 13.5px;
+            text-align: center;
+            cursor: pointer;
+            background: #622599;
+            color: #fff;
+            -webkit-transition: all 1s;
+            -moz-transition: all 1s;
+            transition: all 1s;
+        }
+
+        .btn2 {
+            position: absolute;
+            border-radius: 8px;
+            top: 48px;
+            left: 45px;
+            padding: 6px 37px;
+            font-size: 13.5px;
+            text-align: center;
+            cursor: pointer;
+            background: #622599;
+            color: #fff;
+            -webkit-transition: all 1s;
+            -moz-transition: all 1s;
+            transition: all 1s;
+        }
+
+        .btn3 {
+            position: absolute;
+            border-radius: 8px;
+            top: 48px;
+            left: 45px;
+            padding: 6px 37px;
+            font-size: 13.5px;
+            text-align: center;
+            cursor: pointer;
+            background: #622599;
+            color: #fff;
+            -webkit-transition: all 1s;
+            -moz-transition: all 1s;
+            transition: all 1s;
+        }
+
+        #archivo1 {
+            position: absolute;
+            left: 50px;
+            top: 50px;
+        }
+
+        #archivo2 {
+            position: absolute;
+            left: 50px;
+            top: 50px;
+        }
+
+        #archivo3 {
+            position: absolute;
+            left: 50px;
+            top: 50px;
+        }
+
+        .btn:hover {
+            background: red;
+        }
+    </style>
+</head>
+<body id="page-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+        <div class="container">
+
+            <a class="navbar-brand js-scroll-trigger" href="default#page-top">  CORTE NACIONAL DE HONOR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto my-2 my-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#about">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="solicitud#about">Revisión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="seguimiento#about">Seguimiento</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#services">Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#portfolio">Integrantes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="~/Protected/inicio" title="Sistema se la Corte Nacional de Honor">SCNH</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link js-scroll-trigger" href="default#contact">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+
+
+    <section class="page-section bg-primary" id="about">
+
+
+        <div class="container">
+
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h2 class="text-white mt-0">Interponer un recurso de revisión</h2>
+                    @if (exito != true)
+                    {
+                        <hr class="divider light my-4">
+                        <p class="text-white-50 mb-4">
+                            <strong>Instrucciones: </strong>Para que usted interponga un recurso de revisión ante la Corte Nacional de Honor deberá ser un miembro activo en la Asociación de Scouts de México A.C.,
+                            deberá de proporcionar su CUM y su correo electrónico en el caso que la CNH requiera comunicarse con usted.
+                            Usted podrá describir de manera general su caso y subir hasta 3 archivos en formato PDF (5MB) donde podrá agregar documentos que ayuden su caso, si requiere subir más documentos, le pedimos que ,<strong>los suba en un drive </strong> y comparta la liga del mismo en el cuerpo de su mensaje, asegurandose que el acceso a esa carpeta sea público (La CNH NO compartira esta liga). Una vez hecho esto, recibirá un número de seguimiento el cual podrá revisar de manera paulatina para saber el estatus de su trámite. Es importante comentar que los acuerdos a los que llegue la CNH serán comunicados por los medios oficiales y NO serán entregados por este medio. Solo podrá ingresar un recurso de revisión por caso. Al enviar su información, usted acepta las políticas de protección de datos personales de la ASMAC.
+                        </p>
+                        <a class="btn btn-light btn-xl js-scroll-trigger" href="#services">Iniciar</a>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section" id="services">
+        <div class="container my-1">
+            <center><img src="img/cnh.svg" class="img-responsive" width="350" height="200" /></center>
+
+            <h2 class="text-center mt-2">
+                Nuevo recurso de revisión
+
+                @{
+                    switch (nivel)
+                    {
+                        case "1":
+                            @Html.Raw(" a Nivel Grupo");
+                            break;
+
+                        case "3":
+                            @Html.Raw(" a Nivel Provincia");
+                            break;
+
+                        case "4":
+                            @Html.Raw(" a Nivel Nacional");
+                            break;
+
+                    }
+                }
+
+            </h2>
+            <hr class="divider my-3">
+
+            @if (MsgError != "")
+            {
+                Ver = false;
+                <div class="alert alert-warning">
+                    <center>  <strong>¡ADVERTENCIA!</strong> @MsgError <A HREF="SOLICITUD" target="_self"><STRONG>REGRESAR</STRONG></A></center>
+                </div>
+            }
+
+            @if (ErrorRegnal != "")
+            {
+                Ver = false;
+                <div class="alert alert-warning">
+                    <center>  <strong>¡ADVERTENCIA!</strong> @ErrorRegnal <A HREF="SOLICITUD" target="_self"><STRONG>REGRESAR</STRONG></A></center>
+                </div>
+            }
+
+
+
+
+
+            <a href="#Listo"></a>
+            @if (exito == true)
+            {
+                Ver = false;
+                <div class="alert alert-success">
+                    <center>  <h3><strong>¡ÉXITO!</strong></h3><br /> Su solicitud ha sido recibida, favor de apuntar su número de <h3><FONT color="RED">FOLIO: <strong>@folio</strong></FONT></h3> El folio le será solicitado para para dar seguimiento a su solicitud, asegurese de guardarlo por favor. Se le ha mandado un correo con los datos, favor de revisar la carpeta de <font color="red"><strong>SPAM</strong></font><br /> <br /> <A HREF="default" target="_self"><STRONG>INICIO</STRONG></A></center>
+                    <br />
+                    @if (emailMandado == true)
+                    {<center>@Html.Raw(" Email mandado, revise la carpeta de SPAM de su email.") </center>}
+
+                </div>
+                //mandar email aqui
+            }
+            @if (cum != "" && mandado == "1")
+            {
+                <br />
+                <hr />
+
+                if (Ver == true)
+                {
+
+
+
+                    <form name="forma2" id="forma2" method="post" enctype="multipart/form-data">
+                        <input type="hidden" value="1" name="FormaMandada" />
+                        <input type="hidden" value="@provincia_grupo" name="provinciaid" />
+                        <input type="hidden" value="@cum" name="cum" />
+                        <input type="hidden" value="@nombre" name="nombre" />
+                        <input type="hidden" value="@paterno" name="paterno" />
+                        <input type="hidden" value="@materno" name="materno" />
+                        <input type="hidden" value="@nivel" name="nivel" />
+                        <input type="hidden" value="@nivel" name="NivelFuncional" />
+
+                        <div class="row">
+                            <p class="col-lg-12 col-md-12 text-justify">
+                            <p class="text-muted mb-0">
+                                <small>
+                                    A continuación, verifique su CUM y su provincia, ingrese su email, tipo de trámite, reumen corto del caso  y describa el caso que quiere someter a revisión, si requiere subir archivos PDF, de click en el botón Archivo y seleccionelos (puede subir hasta 3 de 5Mb c/u), seleccione la casilla de verificación y presione el botón mandar datos.
+                                </small>
+                            </p>
+                        </div>
+                        <br />
+
+
+                        <div class="row">
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-12">
+                                    CUM: <input type="text" name="CumCargado" id="ip1" placeholder="CUM" readonly value="@cum" max="10" maxlength="10">
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-6">
+                                    Provincia: <input type="text" name="provincia" id="ip1" placeholder="Provincia" value="@nombre_provincia" readonly>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-12">
+                                    * Email: <input type="email" id="ip1" name="email" autofocus placeholder="Ingrese su email" maxlength="300" max="300" required>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+
+
+
+
+
+                        <br />
+                        <div class="row">
+                            <div class="col-lg-8 col-md-8 text-center">
+                                <div class="mt-8">
+                                    <textarea class="form-control" name="resumen" rows="1" max="500" placeholder="Escriba el resumen de su caso" maxlength="500" required></textarea>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div>
+                                    @{ string selectQueryStringget = "SELECT * from CTipoCaso where activo=1 order by descrip_tipo_caso"; }
+                                    <select id="tipo_tramite" name="tipo_tramite" required class="form-control  select">
+                                        <option value="">SELECCIONE TIPO TRÁMITE</option>
+                                        @foreach (var row3 in Conn.Query(selectQueryStringget))
+                                        {
+                                            <option value="@row3.Id_TipoCaso">@row3.descrip_tipo_caso.ToUpper()</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div><br />
+                        <div class="row">
+                            <div class="col-lg-12 col-md-12 text-center">
+                                <div class="mt-12">
+                                    <textarea class="form-control" name="texto" rows="8" max="7500" placeholder="Describa su caso" maxlength="7500" required></textarea>
+                                </div>
+                            </div>
+                        </div><br />
+                        <div class="row">
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-2">
+                                    <div class="upload-btn-wrapper">
+                                        Archivo 1<small>
+                                            <input type="file" id="archivo1" name="archivo1" accept="application/pdf" max="300" maxlength="300" />
+                                            <span class="btn1">Seleccione</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-2">
+                                    <div class="upload-btn-wrapper">
+                                        Archivo 2<small>
+                                            <input type="file" id="archivo2" name="archivo2" accept="application/pdf" max="300" maxlength="300" />
+                                            <span class="btn2">Seleccione</span>
+                                        </small>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-4 text-center">
+                                <div class="mt-2">
+                                    <div class="upload-btn-wrapper">
+                                        Archivo 3<small>
+                                            <input type="file" id="archivo3" name="archivo3" accept="application/pdf" max="300" maxlength="300" />
+                                            <span class="btn3">Seleccione</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><br /><br />
+
+
+
+                        <div class="row"><div class="col-lg-12 col-md-12">&nbsp;</div></div>
+                        <div class="row"><div class="col-lg-12 col-md-12">&nbsp;</div></div>
+                        <div class="row"><div class="col-lg-12 col-md-12">&nbsp;</div></div>
+
+
+
+                        <div class="row">
+                            <div class="col-lg-6 col-md-6">&nbsp;</div>
+
+                            <div class="col-lg-4 col-md-4 ">
+                                <div class="mt-6 align-right">
+                                    <div class="g-recaptcha" data-sitekey="6Lf39PYUAAAAAEn8_VkQfYESgoqJuw4sShIj_dXd"></div>
+                                    <small>
+                                        <font color="red">
+                                            @if (Mensaje != "")
+                                            {@Mensaje}
+                                        </font>
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-lg-2 col-md-2 text-right">
+                                <div class="mt-6">
+                                    <input type="button" onclick="Mandar2();" class="btn btn-primary  js-scroll-trigger" value="Mandar datos">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                }
+
+            }
+
+
+            <div class="row">
+                <p class="col-lg-12 col-md-12 text-justify"><br /><br /><small>Una vez que envíe esta solicitud, se le proporcionara un <font color="red"> <strong>número de folio único, el cual es muy importante que guarde</strong></font> para darle seguimiento a su trámite. Adicionalmente recibirá un email a la cuenta que registro con esta información, <strong>si este correo no le llega</strong> le pedimos <strong><font color="red">revise la carpeta SPAM</font></strong> de su proveedor de correo electrónico.</small></p>
+                <p class="col-lg-12 col-md-12 text-justify"> <small><strong>Estatus de las solicitudes:</strong> Según el avance en la revisión de su caso los estatus del mismo pueden ser: en revisión, resuelto, faltan datos y recibido.</small> </p>
+                <p class="col-lg-12 col-md-12 text-justify">  <small><strong>Tipos de solicitudes:</strong> Los tipos de solicitudes que puede presentar son las siguientes: interpretación del estatuto, apelación, solicitud de reconocimiento, reconsideración y negativa de respuesta. </small></p>
+                <p class="col-lg-12 col-md-12 text-justify">  <small><strong>Negativa de respuesta:</strong>La negativa de respuesta se da cuando han pasado 20 dias hábiles después de interponer el recurso de revisión ante el Consejo de Grupo (CG), Comisión Ejecutiva de Provincia (CEP) o Dirección Ejecutiva Nacional (DEN) según sea el caso y no se obtiene respuesta en el tiempo señalado. </small></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-light py-5">
+        <div class="container">
+            <div class="small text-center text-muted">Corte Nacional de Honor <Br />Asociación de Scouts de México A.C. <br />Copyright &copy; CNH. Creata 2020</div>
+        </div>
+    </footer>
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin JavaScript -->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="vendor/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <!-- Custom scripts for this template -->
+    <script src="js/creative.min.js"></script>
+
+
+    <script src="~/WebCNH/js/jquery.min.js"></script>
+    <script>
+        $(".btn1").bind("click", function () {
+            $("#archivo1").click();
+        })
+    </script>
+
+    <script>
+        $(".btn2").bind("click", function () {
+            $("#archivo2").click();
+        })
+    </script>
+
+
+    <script>
+        $(".btn3").bind("click", function () {
+            $("#archivo3").click();
+        })
+    </script>
+
+
+</body>
+</html>
+
+<script>
+
+    function Mandar2() {
+        var x = document.forms["forma2"]["email"].value;
+        var y = document.forms["forma2"]["resumen"].value;
+        var z = document.forms["forma2"]["texto"].value;
+        var w = document.forms["forma2"]["tipo_tramite"].value;
+
+        if (x == "") {
+            alert("Debe llenar el campo de email");
+            return false;
+        }
+        else {
+            if (y == "") {
+                alert("Debe llenar el campo de resumen del caso");
+                return false;
+            }
+
+            else {
+                if (z == "") {
+                    alert("Debe llenar la descripción del caso");
+                    return false;
+                }
+
+                else {
+
+                    if (w == "") {
+                        alert("Debe seleccionar el tipo de trámite");
+                        return false;
+                    }
+                    else {
+
+                        var UploadFieldID1 = "archivo1";
+                        var UploadFieldID2 = "archivo2";
+                        var UploadFieldID3 = "archivo3";
+                        var MaxSizeInBytes = 5000000;
+
+                        var fld = document.getElementById(UploadFieldID1);
+                        if (fld.files && fld.files.length == 1 && fld.files[0].size > MaxSizeInBytes) {
+                            alert("El archivo 1 no debe ser mayor de " + parseInt(MaxSizeInBytes / 1024 / 1024) + "MB");
+                            return false;
+                        }
+                        else {
+
+                            var fld2 = document.getElementById(UploadFieldID2);
+                            if (fld2.files && fld2.files.length == 1 && fld2.files[0].size > MaxSizeInBytes) {
+                                alert("El archivo 2 no debe ser mayor de " + parseInt(MaxSizeInBytes / 1024 / 1024) + "MB");
+                                return false;
+                            }
+                            else {
+
+                                var fld3 = document.getElementById(UploadFieldID3);
+                                if (fld3.files && fld3.files.length == 1 && fld3.files[0].size > MaxSizeInBytes) {
+                                    alert("El archivo 3 no debe ser mayor de " + parseInt(MaxSizeInBytes / 1024 / 1024) + "MB");
+                                    return false;
+                                }
+                                else {
+
+                                    if (confirm('¿Estas seguro de enviar este formulario?')) {
+                                        document.getElementById("forma2").submit();
+                                    }
+                                }
+                            }
+                        }
+
+
+                    }
+
+
+
+
+                }
+            }
+        }
+
+    }
+
+
+
+
+
+    function submitform(id) {
+        form = document.createElement('form');
+        form.setAttribute('method', 'POST');
+        form.setAttribute('action', 'VerSolicitud');
+        myvar = document.createElement('input');
+        myvar.setAttribute('name', 'id');
+        myvar.setAttribute('type', 'hidden');
+        myvar.setAttribute('value', id);
+        form.appendChild(myvar);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+
+</script>
+
+@{
+
+    Conn.Close();
+    Conn.Dispose();
+    ConnSisas.Close();
+    ConnSisas.Dispose();
+}
+
+
+<script type="text/javascript">
+    function VerifyUploadSizeIsOK() {
+        /* Attached file size check. Will Bontrager Software LLC, https://www.willmaster.com */
+        var UploadFieldID = "file-upload";
+        var MaxSizeInBytes = 2097152;
+        var fld = document.getElementById(UploadFieldID);
+        if (fld.files && fld.files.length == 1 && fld.files[0].size > MaxSizeInBytes) {
+            alert("El archivo 1 no debe ser mayor de " + parseInt(MaxSizeInBytes / 1024 / 1024) + "MB");
+            return false;
+        }
+        return true;
+    } // function VerifyUploadSizeIsOK()
+</script>

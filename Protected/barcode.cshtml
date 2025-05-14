@@ -1,0 +1,41 @@
+﻿@{
+    Page.Title = "Escriba el título aquí";
+    //Layout = "Su página de diseño se incluye aquí";
+}
+
+
+<html>
+<head>
+    <script src="~/Protected/elecciones/JsBarcode.all.min.js"></script>
+   
+</head>
+<body>
+
+   <!-- <svg id="barcodee"></svg>-->
+
+    <svg class="barcode"
+         jsbarcode-format="auto"
+         jsbarcode-value="9999"
+         jsbarcode-height="30"
+         jsbarcode-width="3"
+         jsbarcode-textmargin="0"
+         jsbarcode-displayValue="false"
+   
+        >
+    </svg>
+
+</body>
+
+
+
+</html>
+
+
+
+<script type="text/javascript">
+JsBarcode("#barcodee", "texto!");
+</script>
+
+<script type="text/javascript">
+    JsBarcode(".barcode").init();
+</script>
